@@ -1,0 +1,25 @@
+{
+  "name": "AgriLocalization",
+  "label": "AgriLocalization",
+  "type": "widget",
+  "version": "1.0.0",
+  "exbVersion": "1.16.0",
+  "author": "Custom Developer",
+  "description": "Agri3 localization toolbar with year, language, theme and logout",
+  "copyright": "",
+  "license": "",
+  "properties": {},
+  "translatedLocales": ["en"],
+  "defaultSize": {
+    "width": 800,
+    "height": 500
+  },
+  "supports": {
+    "map": true
+  },
+  "dependency": ["jimu-arcgis"],
+
+  "supportInlineEditing": true,
+  "hasSettingPage": true,
+  "useDataSources": false
+}
