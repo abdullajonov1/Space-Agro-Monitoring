@@ -289,9 +289,10 @@ export default class AgriPie extends React.PureComponent<
   }
 
   private buildWhereClauseForDS(
-    opts: { includeCategory?: boolean } = {},
+    opts: { includeCategory?: boolean; includeViloyat?: boolean } = {},
   ): string {
     const includeCategory = opts.includeCategory !== false;
+    const includeViloyat = opts.includeViloyat !== false;
     const {
       yil,
       viloyat,
@@ -303,7 +304,8 @@ export default class AgriPie extends React.PureComponent<
     } = this.state;
     const clauses: string[] = [];
 
-    if (viloyat) clauses.push(this.eqAposSmart("viloyat", viloyat));
+    if (includeViloyat && viloyat)
+      clauses.push(this.eqAposSmart("viloyat", viloyat));
     if (tuman) clauses.push(this.eqAposSmart("tuman", tuman));
 
     if (yil) {
@@ -399,8 +401,34 @@ export default class AgriPie extends React.PureComponent<
 
   private makeViloyatKey(raw: string | null | undefined): string {
     if (raw == null) return "";
-    return this.normalizeName(String(raw)).toLowerCase();
+    return this.normalizeName(String(raw))
+      .replace(/['ʻʼ`´]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
   }
+
+  private isRepublicLayer = (layer?: __esri.FeatureLayer): boolean => {
+    if (!layer) return false;
+    const text =
+      `${(layer as any)?.title || ""} ${(layer as any)?.id || ""} ${(layer as any)?.url || ""}`.toLowerCase();
+    return /\brepublic\b|respublika/.test(text);
+  };
+
+  private getDefaultFeatureLayer = (
+    layersOverride?: __esri.FeatureLayer[],
+  ): __esri.FeatureLayer | undefined => {
+    const layers =
+      (layersOverride && layersOverride.length
+        ? layersOverride
+        : this.state.featureLayers) || [];
+    if (!layers.length) return this.state.activeFeatureLayer;
+
+    const republic = layers.find((l) => this.isRepublicLayer(l));
+    if (republic) return republic;
+
+    return layers[0] || this.state.activeFeatureLayer;
+  };
 
   private getFeatureLayerForViloyat = (
     viloyat: string,
@@ -487,7 +515,7 @@ export default class AgriPie extends React.PureComponent<
     if ((this.state.featureLayers?.length ?? 0) > 0) {
       const nextActive = this.state.viloyat
         ? this.getFeatureLayerForViloyat(this.state.viloyat)
-        : this.state.featureLayers?.[0];
+        : this.getDefaultFeatureLayer(this.state.featureLayers);
 
       if (nextActive && this.state.activeFeatureLayer?.id !== nextActive.id) {
         this.setState({ activeFeatureLayer: nextActive });
@@ -509,7 +537,7 @@ export default class AgriPie extends React.PureComponent<
 
     const nextActive = this.state.viloyat
       ? this.getFeatureLayerForViloyat(this.state.viloyat)
-      : this.state.featureLayers?.[0];
+      : this.getDefaultFeatureLayer(this.state.featureLayers);
 
     this.setState({ activeFeatureLayer: nextActive });
     return nextActive;
@@ -676,12 +704,12 @@ export default class AgriPie extends React.PureComponent<
     const nextTuman = hasField("tuman")
       ? incoming.tuman || ""
       : this.state.tuman;
-    const nextTuri = hasField("turi") ? incoming.turi || "" : this.state.turi;
-    const nextVh = hasField("vh") ? incoming.vh || "" : this.state.vh;
-    const nextBarField = hasField("barCategoryField")
+    let nextTuri = hasField("turi") ? incoming.turi || "" : this.state.turi;
+    let nextVh = hasField("vh") ? incoming.vh || "" : this.state.vh;
+    let nextBarField = hasField("barCategoryField")
       ? (incoming.barCategoryField ?? null)
       : this.state.barCategoryField;
-    const nextBarValue = hasField("barCategoryValue")
+    let nextBarValue = hasField("barCategoryValue")
       ? (incoming.barCategoryValue ?? null)
       : this.state.barCategoryValue;
     const nextLanguage: "uz_cyr" | "uz_lat" | "ru" = hasField("language")
@@ -697,6 +725,15 @@ export default class AgriPie extends React.PureComponent<
       nextYil !== this.state.yil ||
       effectiveViloyat !== this.state.viloyat ||
       nextTuman !== this.state.tuman;
+
+    // When region scope changes but master event does not explicitly send
+    // category/vh fields, reset local residue so pie returns to default aggregate.
+    if (parentChanged) {
+      if (!hasField("turi")) nextTuri = "";
+      if (!hasField("vh")) nextVh = "";
+      if (!hasField("barCategoryField")) nextBarField = null;
+      if (!hasField("barCategoryValue")) nextBarValue = null;
+    }
     const barSelectionChanged =
       nextVh !== this.state.vh ||
       nextBarField !== this.state.barCategoryField ||
@@ -745,7 +782,7 @@ export default class AgriPie extends React.PureComponent<
         language: nextLanguage,
         activeFeatureLayer: effectiveViloyat
           ? this.getFeatureLayerForViloyat(effectiveViloyat)
-          : this.state.activeFeatureLayer,
+          : this.getDefaultFeatureLayer(this.state.featureLayers),
       },
       () => {
         // ✅ Only fetch if parent filters changed, not if only turi changed
@@ -1446,13 +1483,35 @@ export default class AgriPie extends React.PureComponent<
 
       const whereClause = this.buildWhereClauseForDS({
         includeCategory: false,
+        includeViloyat: false,
       });
 
-      const dsAny = this.state.dataSource as any;
-      const fl: __esri.FeatureLayer | undefined =
-        activeFl ?? dsAny?.layer ?? dsAny?.getLayer?.();
+      const allLayers = (this.state.featureLayers || []).filter(Boolean);
+      const selectedViloyat = (this.state.viloyat || "").trim();
+      let layersForQuery: __esri.FeatureLayer[] = [];
 
-      if (!fl) {
+      if (selectedViloyat) {
+        const routed = this.getFeatureLayerForViloyat(selectedViloyat);
+        if (routed) layersForQuery = [routed];
+      }
+
+      if (!layersForQuery.length) {
+        const nonRepublic = allLayers.filter((l) => !this.isRepublicLayer(l));
+        layersForQuery = nonRepublic.length
+          ? nonRepublic
+          : activeFl
+            ? [activeFl]
+            : [];
+      }
+
+      if (!layersForQuery.length) {
+        const dsAny = this.state.dataSource as any;
+        const dsLayer: __esri.FeatureLayer | undefined =
+          dsAny?.layer ?? dsAny?.getLayer?.();
+        if (dsLayer) layersForQuery = [dsLayer];
+      }
+
+      if (!layersForQuery.length) {
         this.setState({
           loading: false,
           error: "FeatureLayer not available for this data source.",
@@ -1460,11 +1519,34 @@ export default class AgriPie extends React.PureComponent<
         return;
       }
 
-      const rows = await this.queryCategoryStatsJSON(
-        fl,
-        whereClause || "1=1",
-        categoryField,
-      );
+      const merged = new Map<string, { key: string; value: number }>();
+
+      for (const layer of layersForQuery) {
+        const layerCategoryField = this.findCategoryField(layer);
+        if (!layerCategoryField) continue;
+
+        const part = await this.queryCategoryStatsJSON(
+          layer,
+          whereClause || "1=1",
+          layerCategoryField,
+        );
+
+        for (const r of part) {
+          const norm = this.normalizeName(r.key || "").toLowerCase();
+          if (!norm) continue;
+          const prev = merged.get(norm);
+          if (prev) {
+            prev.value += Number(r.value || 0);
+          } else {
+            merged.set(norm, {
+              key: r.key,
+              value: Number(r.value || 0),
+            });
+          }
+        }
+      }
+
+      const rows = Array.from(merged.values());
 
       if (!this._isMounted) return;
 

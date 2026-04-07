@@ -954,7 +954,7 @@
   animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 16px;
   background: #ebebeb;
   border: 1px solid rgba(15, 23, 42, 0.08);
@@ -1128,6 +1128,7 @@
   flex-wrap: nowrap;
   gap: 10px;
   min-width: 0;
+  overflow: visible;
 }
 
 .graff-month-picker {
@@ -1145,7 +1146,7 @@
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  z-index: 70;
+  z-index: 3000;
   background: var(--graff-surface, rgba(7, 26, 43, 0.97));
   border: 1px solid var(--graff-border, rgba(126, 214, 255, 0.28));
   border-radius: 10px;
@@ -1153,11 +1154,24 @@
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
 }
 
+.graff-month-picker-panel.open-down {
+  top: calc(100% + 6px);
+  bottom: auto;
+}
+
+.graff-month-picker-panel.open-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
 .graff-month-options {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 146px;
+  max-height: 126px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .graff-month-option {
@@ -1169,6 +1183,7 @@
   font-size: 12px;
   text-align: left;
   padding: 6px 8px;
+  min-height: 28px;
   cursor: pointer;
 }
 

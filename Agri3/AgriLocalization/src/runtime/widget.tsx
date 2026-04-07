@@ -2210,11 +2210,9 @@ export default class AgriLocalization extends React.PureComponent<
 
     let candidates: string[];
     const forcedNdvi = (this.state.ndviDate || "").trim();
-    if (
-      this.state.ndviDateLocked &&
-      forcedNdvi &&
-      knownDates.includes(forcedNdvi)
-    ) {
+    // Keep one NDVI date across default/regional scope changes so totals are
+    // comparable. If state already has a valid date, use only that date.
+    if (forcedNdvi && knownDates.includes(forcedNdvi)) {
       candidates = [forcedNdvi];
     } else {
       const sorted = knownDates.slice().sort((a, b) => {

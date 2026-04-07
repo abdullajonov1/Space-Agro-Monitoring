@@ -431,6 +431,7 @@ interface AgriGraffWidgetState {
   selectedChartIndexKey?: "ndvi" | "savi" | "rvi" | "ci" | "evi" | null;
   selectedMonth: number | null;
   isMonthPickerOpen: boolean;
+  monthPickerPlacement: "up" | "down";
   graphViewportWidth: number;
   graphViewportHeight: number;
   language: "uz_cyr" | "uz_lat" | "ru";
@@ -530,7 +531,7 @@ export default class AgriGraffWidget extends React.PureComponent<
       loading: false,
       error: null,
 
-      viewMode: "table",
+      viewMode: "graph",
 
       searchText: "",
       searchLoading: false,
@@ -543,8 +544,8 @@ export default class AgriGraffWidget extends React.PureComponent<
       localFilters: {},
 
       // ✅ include vh here
-      // Note: default to "table" so republic-wide data shows on initial load
-      // (graph mode requires viloyat for regional timeseries API)
+      // Default to graph; when no polygon is selected the graph uses
+      // regional/republic timeseries API data.
       regionalFilters: {
         viloyat: "",
         tuman: "",
@@ -586,6 +587,7 @@ export default class AgriGraffWidget extends React.PureComponent<
       selectedChartIndexKey: null,
       selectedMonth: null,
       isMonthPickerOpen: false,
+      monthPickerPlacement: "down",
       graphViewportWidth: 860,
       graphViewportHeight: 360,
       language: "uz_cyr",
@@ -833,6 +835,9 @@ export default class AgriGraffWidget extends React.PureComponent<
         vhUniqueids,
         selectedNdviDate: ndviDate || null,
         selectedChartIndexKey: null,
+        selectedMonth: parentChanged ? null : this.state.selectedMonth,
+        isMonthPickerOpen: false,
+        chartTooltip: parentChanged ? null : this.state.chartTooltip,
         selecteduniqueid: shouldClearPolygonSelection
           ? ""
           : this.state.selecteduniqueid,
@@ -3140,6 +3145,9 @@ export default class AgriGraffWidget extends React.PureComponent<
       });
 
       this.fetchData();
+      if (this.state.viewMode === "graph" && !this.state.selecteduniqueid) {
+        this.fetchRegionalTimeseries();
+      }
     } catch (error: any) {
       if (!this._isMounted) return;
       console.error("Error fetching initial data:", error);
@@ -3706,16 +3714,6 @@ export default class AgriGraffWidget extends React.PureComponent<
   private fetchRegionalTimeseries = async () => {
     const { regionalFilters } = this.state;
     const { viloyat, tuman, yil } = regionalFilters;
-    if (!viloyat) {
-      // No viloyat selected — skip regional timeseries (API requires a region code).
-      // Show empty state instead of error.
-      this.setState({
-        vegetationData: [],
-        loadingVegetation: false,
-        vegetationError: null,
-      });
-      return;
-    }
     try {
       this.setState({ loadingVegetation: true, vegetationError: null });
       const params = new URLSearchParams();
@@ -3746,18 +3744,14 @@ export default class AgriGraffWidget extends React.PureComponent<
 
       if (regionNum !== undefined && Number.isFinite(regionNum)) {
         params.set("region", String(regionNum));
-      } else {
-        // If we don't have a numeric region code, abort with a clear error instead of sending a name
-        throw new Error(
-          `Region code not found for viloyat "${viloyat}". Please check layer mappings.`,
-        );
       }
 
       if (tuman) {
         if (districtNum !== undefined && Number.isFinite(districtNum)) {
           params.set("district", String(districtNum));
         } else {
-          // Safe fallback: omit district if we can't resolve a numeric code
+          // Safe fallback: omit district if we can't resolve a numeric code.
+          // Keep request valid so API can still return regionless aggregate data.
           console.warn(
             "[AgriGraffWidget] Missing district code for tuman:",
             tuman,
@@ -3839,7 +3833,50 @@ export default class AgriGraffWidget extends React.PureComponent<
   };
 
   private toggleMonthPicker = () => {
-    this.setState((prev) => ({ isMonthPickerOpen: !prev.isMonthPickerOpen }));
+    this.setState((prev) => {
+      if (prev.isMonthPickerOpen) {
+        return { isMonthPickerOpen: false };
+      }
+      return {
+        isMonthPickerOpen: true,
+        monthPickerPlacement: this.resolveMonthPickerPlacement(),
+      };
+    });
+  };
+
+  private resolveMonthPickerPlacement = (): "up" | "down" => {
+    const pickerRoot = this.monthPickerRef.current;
+    if (!pickerRoot || typeof window === "undefined") return "down";
+
+    const button = pickerRoot.querySelector(
+      ".graff-month-button",
+    ) as HTMLElement | null;
+    const anchorRect = (button || pickerRoot).getBoundingClientRect();
+
+    // 4 visible rows (including "all months") + panel padding/border.
+    const estimatedPanelHeight = 132;
+    const gap = 6;
+    const viewportHeight =
+      window.innerHeight || document.documentElement.clientHeight;
+
+    // Dropdown is clipped by the widget card (overflow hidden), so place it
+    // based on room inside that container first, then viewport as fallback.
+    const card = pickerRoot.closest(".kadastr-status-card") as
+      | HTMLElement
+      | null;
+    const cardRect = card?.getBoundingClientRect();
+    const lowerBound = cardRect
+      ? Math.min(cardRect.bottom, viewportHeight)
+      : viewportHeight;
+    const upperBound = cardRect ? Math.max(cardRect.top, 0) : 0;
+
+    const spaceBelow = lowerBound - anchorRect.bottom;
+    const spaceAbove = anchorRect.top - upperBound;
+
+    if (spaceBelow < estimatedPanelHeight + gap && spaceAbove > spaceBelow) {
+      return "up";
+    }
+    return "down";
   };
 
   private handleMonthOptionClick = (month: number | null) => {
@@ -4030,6 +4067,7 @@ export default class AgriGraffWidget extends React.PureComponent<
       selectedNdviDate,
       selectedMonth,
       isMonthPickerOpen,
+      monthPickerPlacement,
       language,
     } = this.state;
 
@@ -4107,6 +4145,26 @@ export default class AgriGraffWidget extends React.PureComponent<
       if (!selecteduniqueid) {
         const { regionalFilters } = this.state;
         const hasRegion = !!regionalFilters?.viloyat;
+
+        if (!hasRegion) {
+          return (
+            <div className="kadastr-status-loading-container">
+              <div className="regional-modern-loader" aria-hidden="true">
+                <span className="regional-modern-loader-dot" />
+                <span className="regional-modern-loader-dot" />
+                <span className="regional-modern-loader-dot" />
+              </div>
+              <p>
+                {language === "ru"
+                  ? "Загрузка данных о вегетации..."
+                  : language === "uz_lat"
+                    ? "Vеgetatsiya maʼlumotlari yuklanmoqda..."
+                    : "Вегетация маълумоти юкланмоқда..."}
+              </p>
+            </div>
+          );
+        }
+
         return (
           <div className="kadastr-status-no-data">
             <h3>
@@ -4880,7 +4938,9 @@ export default class AgriGraffWidget extends React.PureComponent<
                 </span>
               </button>
               {isMonthPickerOpen && (
-                <div className="graff-month-picker-panel">
+                <div
+                  className={`graff-month-picker-panel ${monthPickerPlacement === "up" ? "open-up" : "open-down"}`}
+                >
                   <div className="graff-month-options" role="listbox" aria-label={monthPickerLabel}>
                     <button
                       type="button"

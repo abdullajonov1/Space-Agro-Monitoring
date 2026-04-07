@@ -1095,11 +1095,17 @@ export default class AgriRegion extends React.PureComponent<
           ...this.state.currentFilters,
           viloyat: "",
           tuman: "",
+          turi: "",
+          vh: "",
         },
       },
-      async () => {
-        await this.fetchRegionalDataDeduped();
-        this.notifyAgriFilter({ viloyat: "", tuman: "" });
+      () => {
+        // Broadcast reset immediately so dependent widgets switch to default scope
+        // without waiting for this widget's internal aggregate query round-trip.
+        this.notifyAgriFilter({ viloyat: "", tuman: "", turi: "", vh: "" });
+
+        // Refresh this widget's own bars after the reset broadcast.
+        this.fetchRegionalDataDeduped();
       },
     );
   };
@@ -1415,9 +1421,13 @@ export default class AgriRegion extends React.PureComponent<
               <p>{regionalError || mapErrorFallback}</p>
             </div>
           ) : !currentFilters.yil ? (
-            <div className="regional-stats-info">
-              <h3>{selectYearTitle}</h3>
-              <p>{selectYearBody}</p>
+            <div className="regional-stats-loading-container">
+              <div className="regional-modern-loader" aria-hidden="true">
+                <span className="regional-modern-loader-dot" />
+                <span className="regional-modern-loader-dot" />
+                <span className="regional-modern-loader-dot" />
+              </div>
+              <p>{dataLoadingText}</p>
             </div>
           ) : regionalLoading ? (
             <div className="regional-stats-loading-container">
