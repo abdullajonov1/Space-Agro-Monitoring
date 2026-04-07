@@ -530,7 +530,7 @@ export default class AgriGraffWidget extends React.PureComponent<
       loading: false,
       error: null,
 
-      viewMode: "graph",
+      viewMode: "table",
 
       searchText: "",
       searchLoading: false,
@@ -543,6 +543,8 @@ export default class AgriGraffWidget extends React.PureComponent<
       localFilters: {},
 
       // ✅ include vh here
+      // Note: default to "table" so republic-wide data shows on initial load
+      // (graph mode requires viloyat for regional timeseries API)
       regionalFilters: {
         viloyat: "",
         tuman: "",

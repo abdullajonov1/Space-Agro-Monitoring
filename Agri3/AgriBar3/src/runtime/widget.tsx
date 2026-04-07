@@ -108,7 +108,7 @@ export default class AgriBar extends React.PureComponent<
     const base = category.trim();
     if (base === "1-Juda yaxshi") {
       if (language === "ru") return "Очень хороший";
-      if (language === "uz_lat") return "Juda yaxshi";
+      if (language === "uz_lat") return "A'lo";
       return "Жуда яхши";
     }
     if (base === "2-Yaxshi") {

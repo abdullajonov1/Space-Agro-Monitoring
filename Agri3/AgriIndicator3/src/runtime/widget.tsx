@@ -150,6 +150,7 @@ export default class VegetationStatsWidget extends React.PureComponent<
   private _isMounted = false;
   private _onReset: () => void;
   private _isResetting = false;
+  private _canonicalFeatureLayer?: __esri.FeatureLayer;
 
   // Viloyat routing cache (viloyat normalized key -> index in `this.state.featureLayers`)
   private _viloyatKeyToLayerIndex: Record<string, number> = {};
@@ -519,6 +520,10 @@ export default class VegetationStatsWidget extends React.PureComponent<
 
     if (!changed) return;
 
+    console.log(
+      `[AgriIndicator3] Filter sync yil=${nextYil || ""} viloyat=${nextVil || ""} tuman=${nextTum || ""} turi=${nextTuri || ""} vh=${nextVh || ""}`,
+    );
+
     this.setState(
       {
         selectedYil: nextYil,
@@ -530,10 +535,11 @@ export default class VegetationStatsWidget extends React.PureComponent<
         barCategoryValue: nextBarValue,
         selectedNdviDate: nextNdviDate,
         ndviStatusField: nextNdviStatusField,
-        // Route to the feature layer that contains the selected viloyat
-        featureLayer: nextVil
-          ? this.getFeatureLayerForViloyat(nextVil)
-          : this.state.featureLayer,
+        // Keep a single canonical layer for all scopes.
+        // Only WHERE changes when viloyat/tuman changes.
+        featureLayer:
+          this._canonicalFeatureLayer ||
+          this.getDefaultFeatureLayer(this.state.featureLayers),
 
         loading: true,
         lastFilterEventTimestamp: Date.now(),
@@ -1057,6 +1063,8 @@ export default class VegetationStatsWidget extends React.PureComponent<
 
   private makeViloyatKeyForRouting = (viloyat: string): string => {
     return this.normalizeApos(viloyat || "")
+      .replace(/['ʻʼ`´]/g, "")
+      .replace(/\s+/g, " ")
       .trim()
       .toLowerCase();
   };
@@ -1070,6 +1078,28 @@ export default class VegetationStatsWidget extends React.PureComponent<
     const layers = layersOverride ?? this.state.featureLayers ?? [];
     if (typeof idx === "number" && layers[idx]) return layers[idx];
     return this.state.featureLayer || layers[0];
+  };
+
+  private isRepublicLayer = (layer?: __esri.FeatureLayer): boolean => {
+    if (!layer) return false;
+    const text =
+      `${(layer as any)?.title || ""} ${(layer as any)?.id || ""} ${(layer as any)?.url || ""}`.toLowerCase();
+    return /\brepublic\b|respublika/.test(text);
+  };
+
+  private getDefaultFeatureLayer = (
+    layersOverride?: __esri.FeatureLayer[],
+  ): __esri.FeatureLayer | undefined => {
+    const layers =
+      (layersOverride && layersOverride.length
+        ? layersOverride
+        : this.state.featureLayers) || [];
+    if (!layers.length) return this.state.featureLayer;
+
+    const republic = layers.find((l) => this.isRepublicLayer(l));
+    if (republic) return republic;
+
+    return layers[0] || this.state.featureLayer;
   };
 
   private buildViloyatLayerIndex = async (
@@ -1166,12 +1196,12 @@ export default class VegetationStatsWidget extends React.PureComponent<
 
     await this.buildViloyatLayerIndex(featureLayers);
 
-    const routed = this.state.selectedViloyat
-      ? this.getFeatureLayerForViloyat(
-          this.state.selectedViloyat,
-          featureLayers,
-        )
-      : featureLayers[0];
+    const routed = this.getDefaultFeatureLayer(featureLayers);
+    this._canonicalFeatureLayer = routed;
+
+    console.log(
+      `[AgriIndicator3] Canonical layer selected id=${(routed as any)?.id || ""} title=${(routed as any)?.title || ""} url=${(routed as any)?.url || ""}`,
+    );
 
     this.setState(
       {
@@ -1235,7 +1265,7 @@ export default class VegetationStatsWidget extends React.PureComponent<
   // WHERE builder (FeatureLayer)
   // =========================
 
-  buildWhereClause(): string {
+  buildWhereClause(includeViloyat = true): string {
     const {
       selectedYil,
       selectedViloyat,
@@ -1269,7 +1299,7 @@ export default class VegetationStatsWidget extends React.PureComponent<
     // Region hierarchy
     if (selectedTuman)
       clauses.push(this.eqAposSmart(FILTER_FIELDS.TUMAN, selectedTuman));
-    else if (selectedViloyat)
+    else if (includeViloyat && selectedViloyat)
       clauses.push(this.eqAposSmart(FILTER_FIELDS.VILOYAT, selectedViloyat));
 
     // ✅ Crop (turi): always apply when selected so Indicator filters by crop (layer may not have .fields loaded yet)
@@ -1837,7 +1867,7 @@ export default class VegetationStatsWidget extends React.PureComponent<
 
       this.setState({ loading: true, error: null });
 
-      const fl = this.state.featureLayer;
+      const fl = this._canonicalFeatureLayer || this.state.featureLayer;
       if (!fl) {
         this.setState({ loading: false, error: "No feature layer available" });
         return;
@@ -1903,6 +1933,83 @@ export default class VegetationStatsWidget extends React.PureComponent<
       }
 
       const onField = op === "count" ? oidField : field;
+
+      // In Agri3, overall "sum" should reflect totals across regional layers.
+      // If regional layers exist, use them (excluding republic layer to avoid overlap).
+      if (op === "sum") {
+        const allLayers = (this.state.featureLayers || []).filter(Boolean);
+        const selectedVil = (this.state.selectedViloyat || "").trim();
+        const selectedTum = (this.state.selectedTuman || "").trim();
+
+        let layersForSum: __esri.FeatureLayer[] = [];
+        let whereForSum = where;
+
+        if (selectedVil) {
+          // Use the routed regional layer and avoid fragile viloyat text predicate.
+          const routed =
+            this.getFeatureLayerForViloyat(selectedVil, allLayers) || fl;
+          layersForSum = [routed];
+          whereForSum = this.buildWhereClause(false);
+          if (this.props.config?.excludeZeroValues && field) {
+            whereForSum += ` AND ${this.nz(field)}`;
+          }
+        } else {
+          const nonRepublicLayers = allLayers.filter(
+            (l) => !this.isRepublicLayer(l),
+          );
+          layersForSum = nonRepublicLayers.length ? nonRepublicLayers : [fl];
+        }
+
+        let totalRaw = 0;
+        let usedLayerCount = 0;
+
+        for (const layer of layersForSum) {
+          const layerFields = (layer.fields || []).map((f) =>
+            (f?.name || "").toLowerCase(),
+          );
+          if (!layerFields.includes(onField.toLowerCase())) continue;
+
+          const qLayer = layer.createQuery();
+          qLayer.where = whereForSum;
+          qLayer.outStatistics = [
+            {
+              onStatisticField: onField,
+              statisticType: "sum",
+              outStatisticFieldName: "agg",
+            },
+          ] as any;
+          qLayer.returnGeometry = false;
+
+          const statsLayer = await layer.queryFeatures(qLayer);
+          const rawLayer = Number(
+            statsLayer?.features?.[0]?.attributes?.agg ?? 0,
+          );
+          totalRaw += rawLayer;
+          usedLayerCount++;
+        }
+
+        console.log(
+          `[AgriIndicator3] Multi-layer sum where=${whereForSum} layers=${usedLayerCount} selectedViloyat=${selectedVil || ""} selectedTuman=${selectedTum || ""} raw=${totalRaw}`,
+        );
+
+        const dp = Number(this.props.config?.decimalPlaces || 0);
+        const totalVal =
+          dp > 0 ? parseFloat(totalRaw.toFixed(dp)) : Math.round(totalRaw);
+
+        this.setState({
+          vegetationArea: totalVal,
+          totalArea: totalVal,
+          loading: false,
+          lastUpdate: new Date(),
+          error: null,
+        });
+        return;
+      }
+
+      console.log(
+        `[AgriIndicator3] Stats query layerId=${(fl as any)?.id || ""} layerTitle=${(fl as any)?.title || ""} op=${op} field=${onField} where=${where}`,
+      );
+
       const q = fl.createQuery();
       q.where = where;
       q.outStatistics = [
@@ -1916,6 +2023,7 @@ export default class VegetationStatsWidget extends React.PureComponent<
 
       const stats = await fl.queryFeatures(q);
       const raw = Number(stats?.features?.[0]?.attributes?.agg ?? 0);
+      console.log(`[AgriIndicator3] Stats result raw=${raw}`);
       const dp = Number(this.props.config?.decimalPlaces || 0);
       const val = dp > 0 ? parseFloat(raw.toFixed(dp)) : Math.round(raw);
 
@@ -2134,20 +2242,8 @@ export default class VegetationStatsWidget extends React.PureComponent<
 
     const { widgetSize } = this.state;
 
-    const hideUntilViloyat =
-      (!selectedViloyat || selectedViloyat.trim() === "") &&
-      connectionStatus !== "failed";
-    if (hideUntilViloyat) {
-      // Keep it visually blank until viloyat is selected.
-      return (
-        <div
-          ref={this._containerRef}
-          className={`vegetation-stats-widget ${themeClass}`}
-          data-ind-size={widgetSize}
-          style={customStyles.container}
-        />
-      );
-    }
+    // Show republic-wide data when no viloyat is selected (removed hideUntilViloyat gate).
+    // The indicator now renders its aggregate value for the whole country when only yil is set.
 
     return (
       <div
