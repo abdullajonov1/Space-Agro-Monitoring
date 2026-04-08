@@ -12,9 +12,9 @@
 /* ── CSS variables: dark (default) ── */
 .vegetation-stats-widget,
 .vegetation-stats-widget.dark-theme {
-  --ind-bg: #071a2b;
-  --ind-bg-soft: #0d2f49;
-  --ind-border: rgba(126, 214, 255, 0.24);
+  --ind-bg: #030a12;
+  --ind-bg-soft: #061420;
+  --ind-border: rgba(126, 214, 255, 0.16);
   --ind-text: #e9f8ff;
   --ind-muted: #9cc7dd;
   --ind-shadow: 0 14px 34px rgba(3, 11, 22, 0.48);
@@ -24,12 +24,12 @@
   background:
     radial-gradient(
       120% 90% at 14% 10%,
-      rgba(83, 226, 255, 0.2),
+      rgba(83, 226, 255, 0.12),
       transparent 58%
     ),
     radial-gradient(
       130% 90% at 86% 0%,
-      rgba(33, 137, 255, 0.24),
+      rgba(33, 137, 255, 0.14),
       transparent 62%
     ),
     linear-gradient(156deg, var(--ind-bg) 0%, var(--ind-bg-soft) 100%) !important;

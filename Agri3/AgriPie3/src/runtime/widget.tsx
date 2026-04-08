@@ -89,8 +89,35 @@ export default class AgriPie extends React.PureComponent<
 > {
   _isMounted = false;
 
-  // Color palette
-  CATEGORY_COLORS = [
+  // Crop palette (matches AgriLocalization renderer)
+  private static readonly CROP_COLOR_MAP: Record<string, string> = {
+    "bug'doy": "#ffaa00",
+    bugdoy: "#ffaa00",
+    paxta: "#ffffff",
+    makka: "#09b01f",
+    sholi: "#3d7491",
+    mosh: "#8200fc",
+    beda: "#fad08c",
+    ozuqa: "#895a8c",
+    loviya: "#9dff00",
+    poliz: "#cc4400",
+    tariq: "#ffff00",
+    "bog'": "#047a12",
+    bog: "#047a12",
+    "yeryong'oq": "#997128",
+    yeryongoq: "#997128",
+    sabzi: "#ff0000",
+    kungaboqar: "#55ff00",
+  };
+
+  // Fallback palette (for unknown categories)
+  /** Thin grey edge so light/white slices (e.g. paxta) stay visible on light UI */
+  private static readonly PIE_SLICE_EDGE = {
+    borderColor: "rgba(100, 116, 139, 0.55)",
+    borderWidth: 1,
+  };
+
+  private static readonly FALLBACK_COLORS = [
     "#1E7AE6",
     "#202124",
     "#6C6FD5",
@@ -306,7 +333,9 @@ export default class AgriPie extends React.PureComponent<
 
     if (includeViloyat && viloyat)
       clauses.push(this.eqAposSmart("viloyat", viloyat));
-    if (tuman) clauses.push(this.eqAposSmart("tuman", tuman));
+    // In default republic mode (no viloyat), ignore stale tuman filter.
+    if (tuman && (includeViloyat || !!viloyat))
+      clauses.push(this.eqAposSmart("tuman", tuman));
 
     if (yil) {
       const yDigits =
@@ -347,6 +376,16 @@ export default class AgriPie extends React.PureComponent<
       .replace(/['''ʻʼ`]/g, "'")
       .replace(/\s+/g, " ")
       .trim();
+  }
+
+  private getCropColor(rawKey: string, index: number): string {
+    const k = this.normalizeName(rawKey).toLowerCase();
+    const hit = AgriPie.CROP_COLOR_MAP[k];
+    if (hit) return hit;
+    return (
+      AgriPie.FALLBACK_COLORS[index % AgriPie.FALLBACK_COLORS.length] ??
+      "#1E7AE6"
+    );
   }
 
   private getCategoryDisplayName(
@@ -695,68 +734,60 @@ export default class AgriPie extends React.PureComponent<
     const incoming = d.filters || {};
     const hasField = (k: string) =>
       Object.prototype.hasOwnProperty.call(incoming, k);
-
     // Keep current values when upstream event doesn't include that field.
     const nextYil = hasField("yil") ? incoming.yil || "" : this.state.yil;
-    const nextViloyat = hasField("viloyat")
+    const nextViloyatRaw = hasField("viloyat")
       ? incoming.viloyat || ""
       : this.state.viloyat;
-    const nextTuman = hasField("tuman")
+    const nextTumanRaw = hasField("tuman")
       ? incoming.tuman || ""
       : this.state.tuman;
-    let nextTuri = hasField("turi") ? incoming.turi || "" : this.state.turi;
-    let nextVh = hasField("vh") ? incoming.vh || "" : this.state.vh;
-    let nextBarField = hasField("barCategoryField")
+    let nextTuriRaw = hasField("turi") ? incoming.turi || "" : this.state.turi;
+    const nextVh = hasField("vh") ? incoming.vh || "" : this.state.vh;
+
+    const nextBarField = hasField("barCategoryField")
       ? (incoming.barCategoryField ?? null)
       : this.state.barCategoryField;
     let nextBarValue = hasField("barCategoryValue")
       ? (incoming.barCategoryValue ?? null)
       : this.state.barCategoryValue;
+
+    // If explicit vh filter comes but no bar value field is present, clear stale bar value.
+    if (nextVh && !hasField("barCategoryValue")) nextBarValue = null;
+
     const nextLanguage: "uz_cyr" | "uz_lat" | "ru" = hasField("language")
       ? (incoming.language as any) || this.state.language || "uz_cyr"
       : this.state.language;
 
-    const lockedViloyat =
-      d?.scope?.lockedViloyat != null ? String(d.scope.lockedViloyat) : "";
-    const effectiveViloyat = lockedViloyat || nextViloyat;
+    const effectiveViloyat = this.normalizeName(nextViloyatRaw || "");
+    const nextTuman = this.normalizeName(nextTumanRaw || "");
+    let nextTuri = this.normalizeName(nextTuriRaw || "");
 
-    // Parent = only region/year; crop (turi) is our own selection — don't clear it when filter echoes turi back
+    // Parent = year/region/tuman. Turi is local selection and should be preserved on partial payloads.
     const parentChanged =
       nextYil !== this.state.yil ||
       effectiveViloyat !== this.state.viloyat ||
       nextTuman !== this.state.tuman;
 
-    // When region scope changes but master event does not explicitly send
-    // category/vh fields, reset local residue so pie returns to default aggregate.
-    if (parentChanged) {
-      if (!hasField("turi")) nextTuri = "";
-      if (!hasField("vh")) nextVh = "";
-      if (!hasField("barCategoryField")) nextBarField = null;
-      if (!hasField("barCategoryValue")) nextBarValue = null;
-    }
     const barSelectionChanged =
-      nextVh !== this.state.vh ||
       nextBarField !== this.state.barCategoryField ||
-      nextBarValue !== this.state.barCategoryValue;
-    const turiChanged = nextTuri !== this.state.turi;
+      nextBarValue !== this.state.barCategoryValue ||
+      nextVh !== this.state.vh;
+
     const languageChanged = nextLanguage !== this.state.language;
 
     if (
       !parentChanged &&
       !barSelectionChanged &&
-      !turiChanged &&
-      !languageChanged
-    )
+      !languageChanged &&
+      nextTuri === this.state.turi
+    ) {
       return;
+    }
 
-    // Keep slice highlight: when parent didn't change, sync selection from incoming turi (or keep current)
-    const categories = this.state.categoryData?.categories ?? [];
-    const matchIdx =
-      nextTuri && categories.length
-        ? categories.findIndex(
-            (c) => this.normalizeName(c.key) === this.normalizeName(nextTuri),
-          )
-        : -1;
+    const matchIdx = this.state.categoryData.categories.findIndex(
+      (c) => this.normalizeName(c.key) === nextTuri,
+    );
     const nextSelectedCategory = parentChanged
       ? null
       : nextTuri || this.state.selectedCategory || null;
@@ -785,7 +816,6 @@ export default class AgriPie extends React.PureComponent<
           : this.getDefaultFeatureLayer(this.state.featureLayers),
       },
       () => {
-        // ✅ Only fetch if parent filters changed, not if only turi changed
         if (parentChanged || barSelectionChanged || languageChanged) {
           this.fetchCategoryData();
         }
@@ -1237,7 +1267,7 @@ export default class AgriPie extends React.PureComponent<
     const chartData = this.getChartDataForPie();
 
     const option: echarts.EChartsOption = {
-      color: this.CATEGORY_COLORS,
+      color: AgriPie.FALLBACK_COLORS,
       tooltip: {
         trigger: "item",
         show: false,
@@ -1260,8 +1290,7 @@ export default class AgriPie extends React.PureComponent<
           },
           itemStyle: {
             borderRadius: 6,
-            borderColor: "#fff",
-            borderWidth: 1,
+            ...AgriPie.PIE_SLICE_EDGE,
           },
           label: {
             show: false,
@@ -1270,6 +1299,9 @@ export default class AgriPie extends React.PureComponent<
           emphasis: {
             scale: true,
             scaleSize: 6,
+            itemStyle: {
+              ...AgriPie.PIE_SLICE_EDGE,
+            },
             label: {
               show: false,
               fontSize: 40,
@@ -1285,7 +1317,8 @@ export default class AgriPie extends React.PureComponent<
             rawKey: item.rawKey,
             percentage: item.percentage,
             itemStyle: {
-              color: this.CATEGORY_COLORS[index % this.CATEGORY_COLORS.length],
+              color: this.getCropColor(item.rawKey || item.name, index),
+              ...AgriPie.PIE_SLICE_EDGE,
             },
           })),
         },
@@ -1496,12 +1529,10 @@ export default class AgriPie extends React.PureComponent<
       }
 
       if (!layersForQuery.length) {
-        const nonRepublic = allLayers.filter((l) => !this.isRepublicLayer(l));
-        layersForQuery = nonRepublic.length
-          ? nonRepublic
-          : activeFl
-            ? [activeFl]
-            : [];
+        // Default (no viloyat) must show republic-wide totals, so use only the
+        // canonical/republic layer instead of summing regional layers.
+        const defaultLayer = this.getDefaultFeatureLayer(allLayers);
+        layersForQuery = defaultLayer ? [defaultLayer] : activeFl ? [activeFl] : [];
       }
 
       if (!layersForQuery.length) {
@@ -1640,44 +1671,6 @@ export default class AgriPie extends React.PureComponent<
 
     const titleText = "Ekin turi";
 
-    const selectYearTitle =
-      language === "ru"
-        ? "📅 Выберите год"
-        : language === "uz_lat"
-          ? "📅 Yilni tanlang"
-          : "📅 Йилни танланг";
-
-    const selectYearBody =
-      language === "ru"
-        ? "Тоифа статистикасини кўриш учун аввал йилни танланг".replace(
-            /тоифа статистикасини кўриш учун аввал йилни танланг/gi,
-            "Чтобы посмотреть статистику по категориям, сначала выберите год",
-          )
-        : language === "uz_lat"
-          ? "Toifa statistikani ko‘rish uchun avval yilni tanlang"
-          : "Тоифа статистикасини кўриш учун аввал йилни танланг";
-
-    const selectRegionTitle =
-      language === "ru"
-        ? "🗺️ Выберите регион"
-        : language === "uz_lat"
-          ? "🗺️ Viloyatni tanlang"
-          : "🗺️ Вилоятни танланг";
-
-    const selectRegionBody =
-      language === "ru"
-        ? "Чтобы посмотреть статистику по категориям, сначала выберите регион"
-        : language === "uz_lat"
-          ? "Toifa statistikani ko‘rish uchun avval viloyatni tanlang"
-          : "Тоифа статистикасини кўриш учун аввал вилоятни танланг";
-
-    const loadingText =
-      language === "ru"
-        ? "Данные по категориям загружаются..."
-        : language === "uz_lat"
-          ? "Toifa ma’lumotlari yuklanmoqda..."
-          : "Тоифа маълумотлари юкланмоқда...";
-
     const noDataTitle =
       language === "ru"
         ? "Нет данных по категориям"
@@ -1722,6 +1715,12 @@ export default class AgriPie extends React.PureComponent<
     const isMobile = window.innerWidth <= 480;
     const isLandscape =
       window.innerWidth > window.innerHeight && window.innerHeight < 500;
+    const showBlockingLoader =
+      !yil ||
+      mapLoadingStatus === "loading" ||
+      connectionStatus === "idle" ||
+      connectionStatus === "connecting" ||
+      (connectionStatus === "connected" && loading);
 
     return (
       <div className={`land-category-card ${themeClass}`}>
@@ -1783,44 +1782,7 @@ export default class AgriPie extends React.PureComponent<
             </div>
           </div>
 
-          {mapLoadingStatus === "loading" ? (
-            <div className="land-category-loading-container">
-              <div className="regional-modern-loader" aria-hidden="true">
-                <span className="regional-modern-loader-dot" />
-                <span className="regional-modern-loader-dot" />
-                <span className="regional-modern-loader-dot" />
-              </div>
-              <p>Харита юкланмоқда...</p>
-            </div>
-          ) : mapLoadingStatus === "loaded" &&
-            connectionStatus === "connecting" ? (
-            <div className="land-category-loading-container">
-              <div className="regional-modern-loader" aria-hidden="true">
-                <span className="regional-modern-loader-dot" />
-                <span className="regional-modern-loader-dot" />
-                <span className="regional-modern-loader-dot" />
-              </div>
-              <p>Харита қатламларига уланмоқда...</p>
-            </div>
-          ) : connectionStatus === "connected" && !yil ? (
-            <div className="land-category-loading-container">
-              <div className="regional-modern-loader" aria-hidden="true">
-                <span className="regional-modern-loader-dot" />
-                <span className="regional-modern-loader-dot" />
-                <span className="regional-modern-loader-dot" />
-              </div>
-            </div>
-          ) : connectionStatus === "connected" && loading ? (
-            <div className="land-category-loading-container">
-              <div className="regional-modern-loader" aria-hidden="true">
-                <span className="regional-modern-loader-dot" />
-                <span className="regional-modern-loader-dot" />
-                <span className="regional-modern-loader-dot" />
-              </div>
-              <p>{loadingText}</p>
-            </div>
-          ) : mapLoadingStatus === "failed" &&
-            connectionStatus !== "connected" ? (
+          {mapLoadingStatus === "failed" && connectionStatus !== "connected" ? (
             <div className="land-category-error">
               <p>
                 {error || "Харитага уланишда хатолик. Қайта уриниб кўринг."}
@@ -1843,6 +1805,14 @@ export default class AgriPie extends React.PureComponent<
               >
                 Қайта уриниш
               </Button>
+            </div>
+          ) : showBlockingLoader ? (
+            <div className="land-category-loading-container">
+              <div className="regional-modern-loader" aria-hidden="true">
+                <span className="regional-modern-loader-dot" />
+                <span className="regional-modern-loader-dot" />
+                <span className="regional-modern-loader-dot" />
+              </div>
             </div>
           ) : categories.length === 0 ? (
             <div className="land-category-no-data">
@@ -1877,10 +1847,7 @@ export default class AgriPie extends React.PureComponent<
                       className="legend-color"
                       style={{
                         backgroundColor:
-                          this.CATEGORY_COLORS[
-                            index % this.CATEGORY_COLORS.length
-                          ],
-                        boxShadow: `0 0 10px ${this.CATEGORY_COLORS[index % this.CATEGORY_COLORS.length]}40`,
+                          this.getCropColor(entry.rawKey || entry.name, index),
                       }}
                     />
                     <span className="legend-label">{entry.name}</span>

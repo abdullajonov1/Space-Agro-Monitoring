@@ -770,6 +770,12 @@ export default class AgriGraffWidget extends React.PureComponent<
     const effectiveViloyat =
       lockedViloyat || (f.viloyat ? this.normalizeApos(String(f.viloyat)) : "");
 
+    // When parent returns to default (no viloyat selected), clear cached region code.
+    // Otherwise graph API requests may keep sending stale `region=...` and hide republic-wide data.
+    if (!effectiveViloyat) {
+      regionalRegionCode = null;
+    }
+
     const next = {
       viloyat: effectiveViloyat,
       tuman: f.tuman ? this.normalizeApos(String(f.tuman)) : "",
@@ -4105,13 +4111,6 @@ export default class AgriGraffWidget extends React.PureComponent<
             <span className="regional-modern-loader-dot" />
             <span className="regional-modern-loader-dot" />
           </div>
-          <p>
-            {language === "ru"
-              ? "Загрузка данных о вегетации..."
-              : language === "uz_lat"
-                ? "Vеgetatsiya maʼlumotlari yuklanmoqda..."
-                : "Вегетация маълумоти юкланмоқда..."}
-          </p>
         </div>
       );
     }
@@ -4154,13 +4153,6 @@ export default class AgriGraffWidget extends React.PureComponent<
                 <span className="regional-modern-loader-dot" />
                 <span className="regional-modern-loader-dot" />
               </div>
-              <p>
-                {language === "ru"
-                  ? "Загрузка данных о вегетации..."
-                  : language === "uz_lat"
-                    ? "Vеgetatsiya maʼlumotlari yuklanmoqda..."
-                    : "Вегетация маълумоти юкланмоқда..."}
-              </p>
             </div>
           );
         }
@@ -4882,7 +4874,10 @@ export default class AgriGraffWidget extends React.PureComponent<
     };
 
     return (
-      <div className="vegetation-graph-container" ref={this.graphContainerRef}>
+      <div
+        className={`vegetation-graph-container ${isNarrow ? "is-narrow" : ""} ${compactChart ? "is-compact" : ""}`}
+        ref={this.graphContainerRef}
+      >
         {/* Top index buttons (moved from right sidebar) */}
         <div className="graff-index-top">
           <div className="graff-index-top-label">
@@ -5016,7 +5011,7 @@ export default class AgriGraffWidget extends React.PureComponent<
           <div className="graph-svg-wrap" ref={this.graphSvgWrapRef}>
             <svg
               viewBox={`0 0 ${graphWidth} ${graphHeight}`}
-              preserveAspectRatio="none"
+              preserveAspectRatio="xMidYMid meet"
               width="100%"
               height="100%"
               className="graph-svg"

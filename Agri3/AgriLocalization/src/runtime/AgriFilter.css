@@ -8,7 +8,7 @@
 
 html.evapo-app-bg-dark,
 body.evapo-app-bg-dark {
-  background-color: #0c0f14 !important;
+  background-color: #030a12 !important;
 }
 
 html.evapo-app-bg-light,
@@ -39,10 +39,10 @@ body.evapo-app-bg-light {
   border-radius: 12px;
   overflow: hidden;
 
-  --loc-bg: #071a2b;
-  --loc-bg-soft: #0d2f49;
+  --loc-bg: #030a12;
+  --loc-bg-soft: #061420;
   --loc-surface: rgba(9, 28, 44, 0.74);
-  --loc-border: rgba(126, 214, 255, 0.24);
+  --loc-border: rgba(126, 214, 255, 0.16);
   --loc-text: #e9f8ff;
   --loc-muted: #9cc7dd;
   --loc-accent: #3cc7ff;
@@ -52,12 +52,12 @@ body.evapo-app-bg-light {
   background:
     radial-gradient(
       120% 90% at 14% 10%,
-      rgba(83, 226, 255, 0.2),
+      rgba(83, 226, 255, 0.12),
       transparent 58%
     ),
     radial-gradient(
       130% 90% at 86% 0%,
-      rgba(33, 137, 255, 0.24),
+      rgba(33, 137, 255, 0.14),
       transparent 62%
     ),
     linear-gradient(156deg, var(--loc-bg) 0%, var(--loc-bg-soft) 100%);
@@ -341,8 +341,8 @@ body.evapo-app-bg-light {
 .agri-v20-floating-overlay.agri-v20-toolbar-popover,
 .agri-v20-floating-overlay.agri-v20-graff-search-dropdown {
   border-radius: 10px;
-  border: 1px solid rgba(126, 214, 255, 0.24);
-  background: linear-gradient(156deg, #071a2b 0%, #0d2f49 100%);
+  border: 1px solid rgba(126, 214, 255, 0.16);
+  background: linear-gradient(156deg, #030a12 0%, #061420 100%);
   box-shadow: 0 14px 34px rgba(3, 11, 22, 0.48);
   overflow: hidden;
   backdrop-filter: blur(3px);
@@ -439,6 +439,28 @@ body:not(.light-theme)
   color: #e9f8ff;
 }
 
+.agri-v20-root .agri-v20-toolbar-btn.is-active {
+  border-color: rgba(94, 210, 255, 0.92);
+  background: linear-gradient(
+    180deg,
+    rgba(23, 88, 122, 0.96),
+    rgba(16, 63, 90, 0.96)
+  );
+  box-shadow: 0 10px 18px rgba(11, 165, 236, 0.26);
+  color: #e9f8ff;
+}
+
+html.light-theme .agri-v20-root .agri-v20-toolbar-btn.is-active,
+html[data-theme="light"] .agri-v20-root .agri-v20-toolbar-btn.is-active,
+body.light-theme .agri-v20-root .agri-v20-toolbar-btn.is-active,
+.agri-v20-root.light-theme .agri-v20-toolbar-btn.is-active {
+  /* Match hover style so pressed state is obvious */
+  background: #c79d34;
+  border-color: #c79d34;
+  color: #ffffff;
+  box-shadow: 0 8px 16px rgba(199, 157, 52, 0.22);
+}
+
 /* Light mode parity from LocalizationWidgetV20 */
 html.light-theme .evapo-region-card,
 html[data-theme="light"] .evapo-region-card,
@@ -519,6 +541,17 @@ body.light-theme .agri-v20-root .agri-v20-toolbar-btn:hover:not(:disabled),
   border-color: #c79d34;
   color: #ffffff;
   box-shadow: 0 8px 16px rgba(199, 157, 52, 0.22);
+}
+
+/* Ensure pressed state wins over base light styles */
+html.light-theme .agri-v20-root .agri-v20-toolbar-btn.is-active,
+html[data-theme="light"] .agri-v20-root .agri-v20-toolbar-btn.is-active,
+body.light-theme .agri-v20-root .agri-v20-toolbar-btn.is-active,
+.agri-v20-root.light-theme .agri-v20-toolbar-btn.is-active {
+  background: #c79d34 !important;
+  border-color: #c79d34 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 16px rgba(199, 157, 52, 0.22) !important;
 }
 
 html.light-theme .agri-v20-root .agri-v20-graff-search-input,

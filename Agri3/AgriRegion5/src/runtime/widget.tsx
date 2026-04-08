@@ -316,10 +316,59 @@ export default class AgriRegion extends React.PureComponent<
   private _resizeObserver: ResizeObserver | null = null;
   private _themeObserver: MutationObserver | null = null;
 
+  private normalizeLanguage = (
+    raw?: string | null,
+  ): "uz_cyr" | "uz_lat" | "ru" => {
+    const v = String(raw || "")
+      .trim()
+      .toLowerCase();
+
+    if (v === "ru" || v === "russian") return "ru";
+    if (
+      v === "uz_cyr" ||
+      v === "uz-cyr" ||
+      v === "uz_cyrillic" ||
+      v === "uz-cyrillic"
+    ) {
+      return "uz_cyr";
+    }
+    if (
+      v === "uz_lat" ||
+      v === "uz-lat" ||
+      v === "uz_latin" ||
+      v === "uz-latin" ||
+      v === "uz"
+    ) {
+      return "uz_lat";
+    }
+
+    return "uz_lat";
+  };
+
+  private resolveInitialLanguage = (): "uz_cyr" | "uz_lat" | "ru" => {
+    try {
+      const fromUrl =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("lang")
+          : null;
+      const fromStorage =
+        typeof window !== "undefined"
+          ? localStorage.getItem("app_lang") ||
+            localStorage.getItem("evapo_app_lang") ||
+            localStorage.getItem("agro_lang")
+          : null;
+
+      return this.normalizeLanguage(fromUrl || fromStorage);
+    } catch (_e) {
+      return "uz_lat";
+    }
+  };
+
   REGIONAL_COLOR = "#00D2FF";
 
   constructor(props) {
     super(props);
+    const initialLanguage = this.resolveInitialLanguage();
 
     this.state = {
       regionalLoading: false,
@@ -354,7 +403,7 @@ export default class AgriRegion extends React.PureComponent<
       statMode: this.props.config?.areaField ? "sum" : "count",
 
       connectionStatus: "idle",
-      language: "uz_cyr",
+      language: initialLanguage,
     };
   }
 
@@ -488,8 +537,9 @@ export default class AgriRegion extends React.PureComponent<
       ? String(d.scope.lockedViloyat)
       : null;
     const isLocked = Boolean(d?.scope?.locked);
-    const language: "uz_cyr" | "uz_lat" | "ru" =
-      (f.language as any) || this.state.language || "uz_cyr";
+    const language = this.normalizeLanguage(
+      (f.language as any) || this.state.language,
+    );
 
     const prev = this.state.currentFilters;
 
@@ -680,6 +730,45 @@ export default class AgriRegion extends React.PureComponent<
     const first = parts.slice(0, pivot).join(" ");
     const second = parts.slice(pivot).join(" ");
     return second ? [first, second] : [first];
+  };
+
+  private calculateDynamicYAxisWidth = (): number => {
+    const { currentView, selectedViloyatForDrillDown, regionalData, language } =
+      this.state;
+    const data =
+      currentView === "viloyat"
+        ? regionalData.viloyatlar
+        : regionalData.tumanlar;
+
+    if (!data || data.length === 0) return 114;
+
+    // Calculate max line width needed
+    let maxLineLength = 0;
+    for (const item of data) {
+      const displayBase = item.name.replace(
+        currentView === "viloyat" ? /\s*viloyat(?:i)?$/i : /\s*tumani$/i,
+        "",
+      );
+      const displayName = translateForDisplay(displayBase, language);
+      const [line1, line2] = this.splitLabelTwoLines(displayName);
+      const maxLen = Math.max(line1.length, line2?.length || 0);
+      if (maxLen > maxLineLength) maxLineLength = maxLen;
+    }
+
+    // Estimate width: ~6.5px per character at 10px font, plus 12px padding
+    const estimatedWidth = Math.ceil(maxLineLength * 6.5 + 12);
+
+    // Return appropriate minimum based on widgetSize, but scale up if needed
+    const baseWidth =
+      this.state.widgetSize === "xs"
+        ? 84
+        : this.state.widgetSize === "sm"
+          ? 92
+          : this.state.widgetSize === "md"
+            ? 102
+            : 114;
+
+    return Math.max(baseWidth, Math.min(estimatedWidth, 180)); // Cap at 180px
   };
 
   private renderYAxisTick = ({
@@ -1191,14 +1280,8 @@ export default class AgriRegion extends React.PureComponent<
             ? { top: 1, right: 16, left: 2, bottom: 10 }
             : { top: 2, right: 28, left: 4, bottom: 12 };
 
-    const yAxisWidth =
-      widgetSize === "xs"
-        ? 84
-        : widgetSize === "sm"
-          ? 92
-          : widgetSize === "md"
-            ? 102
-            : 114;
+    // Dynamic Y-axis width based on region name lengths
+    const yAxisWidth = this.calculateDynamicYAxisWidth();
     const chartBarSlot =
       widgetSize === "xs"
         ? 32
@@ -1305,26 +1388,12 @@ export default class AgriRegion extends React.PureComponent<
           ? "Qayta yuklash"
           : "Қайта юкла";
 
-    const mapLoadingText =
-      language === "ru"
-        ? "Загрузка карты..."
-        : language === "uz_lat"
-          ? "Xarita yuklanmoqda..."
-          : "Харита юкланмоқда...";
-
     const mapErrorFallback =
       language === "ru"
         ? "Не удалось подключиться к карте."
         : language === "uz_lat"
           ? "Xaritaga ulana olmadik."
           : "Харитага улана олмадик.";
-
-    const dataLoadingText =
-      language === "ru"
-        ? "Загрузка данных..."
-        : language === "uz_lat"
-          ? "Maʼlumotlar yuklanmoqda..."
-          : "Маълумотлар юкланмоқда...";
 
     return (
       <div
@@ -1414,7 +1483,6 @@ export default class AgriRegion extends React.PureComponent<
                 <span className="regional-modern-loader-dot" />
                 <span className="regional-modern-loader-dot" />
               </div>
-              <p>{mapLoadingText}</p>
             </div>
           ) : connectionStatus === "failed" ? (
             <div className="regional-stats-error">
@@ -1427,7 +1495,6 @@ export default class AgriRegion extends React.PureComponent<
                 <span className="regional-modern-loader-dot" />
                 <span className="regional-modern-loader-dot" />
               </div>
-              <p>{dataLoadingText}</p>
             </div>
           ) : regionalLoading ? (
             <div className="regional-stats-loading-container">
@@ -1436,7 +1503,6 @@ export default class AgriRegion extends React.PureComponent<
                 <span className="regional-modern-loader-dot" />
                 <span className="regional-modern-loader-dot" />
               </div>
-              <p>{dataLoadingText}</p>
             </div>
           ) : regionalError ? (
             <div className="regional-stats-error">
@@ -1505,10 +1571,10 @@ export default class AgriRegion extends React.PureComponent<
                     <Bar
                       dataKey="maydon"
                       barSize={chartBarSize}
-                      radius={[12, 12, 12, 12]}
+                      radius={[10, 10, 10, 10]}
                       background={{
                         fill: "rgba(15, 23, 42, 0.16)",
-                        radius: 12,
+                        radius: 10,
                       }}
                       onClick={this.handleRegionSelectionClick}
                       animationDuration={300}

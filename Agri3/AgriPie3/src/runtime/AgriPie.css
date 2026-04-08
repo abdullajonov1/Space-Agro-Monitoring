@@ -264,36 +264,37 @@
   border-radius: 50% !important;
   margin-right: 10px !important;
   flex-shrink: 0 !important;
-  border: 2px solid rgba(15, 23, 42, 0.1) !important;
+  /* Visible edge on white / very light crop colors (e.g. paxta) */
+  border: 1px solid rgba(100, 116, 139, 0.55) !important;
+  box-sizing: border-box !important;
   transition:
     transform 0.15s ease,
     border-color 0.2s ease !important;
 }
 
 .legend-item:hover .legend-color {
-  border-color: rgba(15, 23, 42, 0.2) !important;
+  border-color: rgba(71, 85, 105, 0.75) !important;
   transform: scale(1.08) !important;
 }
 
 .legend-item-selected .legend-color {
-  border-color: rgba(15, 23, 42, 0.28) !important;
+  border-color: rgba(71, 85, 105, 0.85) !important;
   transform: scale(1.12) !important;
 }
 
 .legend-label {
-  flex: 1 1 auto !important;
+  flex: 0 1 auto !important;
+  max-width: 56% !important;
   font-size: 12px !important;
   font-weight: 700 !important;
   color: rgba(15, 23, 42, 0.86) !important;
-  margin-right: 8px !important;
+  margin-right: 18px !important;
   line-height: 1.3 !important;
 
+  /* Allow full crop names to be visible (no truncation) */
   white-space: normal !important;
-  overflow: hidden !important;
-  display: -webkit-box !important;
-  -webkit-box-orient: vertical !important;
-  -webkit-line-clamp: 1 !important;
-  line-clamp: 1 !important;
+  overflow: visible !important;
+  display: block !important;
 }
 
 .legend-item-selected .legend-label {
@@ -308,6 +309,7 @@
 
   margin-left: auto !important;
   padding: 4px 8px !important;
+  padding-left: 14px !important;
   border-radius: 8px !important;
 
   background: rgba(15, 23, 42, 0.06) !important;
@@ -802,10 +804,11 @@
 
 .legend-item {
   display: grid !important;
-  grid-template-columns: 11px minmax(56px, auto) minmax(110px, auto) !important;
+  grid-template-columns: 11px minmax(0, 1fr) max-content !important;
   align-items: center !important;
-  justify-content: end !important;
-  column-gap: 6px !important;
+  justify-content: stretch !important;
+  /* More space between crop name (col 2) and values (col 3); label stays nearer the chart */
+  column-gap: 14px !important;
   background: transparent !important;
   border: none !important;
   border-radius: 14px !important;
@@ -831,7 +834,8 @@
 .legend-color {
   width: 11px !important;
   height: 11px !important;
-  border: none !important;
+  border: 1px solid rgba(100, 116, 139, 0.55) !important;
+  box-sizing: border-box !important;
   margin-right: 0 !important;
 }
 
@@ -842,6 +846,12 @@
   margin-right: 0 !important;
   text-align: left !important;
   padding-right: 0 !important;
+  padding-left: 2px !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  text-overflow: initial !important;
 }
 
 .legend-value {
@@ -857,7 +867,7 @@
   padding: 0 !important;
   margin-left: 0 !important;
   margin-right: 0 !important;
-  min-width: 110px !important;
+  min-width: 90px !important;
   text-align: right !important;
 }
 
@@ -1132,7 +1142,7 @@ body.light-theme .land-category-card,
 }
 
 .land-category-title {
-  font-size: 12px !important;
+  font-size: 14px !important;
   font-weight: 400 !important;
 }
 
@@ -1140,7 +1150,7 @@ body.light-theme .land-category-card,
 .legend-value,
 .legend-area-value,
 .legend-percent-value {
-  font-size: 10px !important;
+  font-size: 12px !important;
 }
 
 .land-category-chart-container,
@@ -1190,4 +1200,67 @@ body.light-theme .legend-item-selected:hover,
 .land-category-card.light-theme .legend-item-selected,
 .land-category-card.light-theme .legend-item-selected:hover {
   background: rgba(61, 87, 85, 0.08) !important;
+}
+
+/* ===== Night mode: darker card + legend column blends with widget ===== */
+html[data-theme="dark"] .land-category-card:not(.light-theme),
+body:not(.light-theme) .land-category-card.dark-theme {
+  --pie-bg: #030a12;
+  --pie-bg-soft: #061420;
+  --pie-border: rgba(126, 214, 255, 0.16);
+}
+
+html[data-theme="dark"] .land-category-card:not(.light-theme),
+body:not(.light-theme) .land-category-card.dark-theme {
+  background:
+    radial-gradient(
+      120% 90% at 14% 10%,
+      rgba(83, 226, 255, 0.12),
+      transparent 58%
+    ),
+    radial-gradient(
+      130% 90% at 86% 0%,
+      rgba(33, 137, 255, 0.14),
+      transparent 62%
+    ),
+    linear-gradient(156deg, var(--pie-bg) 0%, var(--pie-bg-soft) 100%) !important;
+}
+
+html[data-theme="dark"] .land-category-card:not(.light-theme) .category-legend,
+body:not(.light-theme) .land-category-card.dark-theme .category-legend {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .land-category-card:not(.light-theme) .land-category-chart-container,
+body:not(.light-theme) .land-category-card.dark-theme .land-category-chart-container {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .land-category-card:not(.light-theme) .legend-item,
+body:not(.light-theme) .land-category-card.dark-theme .legend-item {
+  background: transparent !important;
+}
+
+html[data-theme="dark"] .land-category-card:not(.light-theme) .legend-item:hover,
+html[data-theme="dark"] .land-category-card:not(.light-theme) .legend-item-selected,
+html[data-theme="dark"] .land-category-card:not(.light-theme) .legend-item-selected:hover,
+body:not(.light-theme) .land-category-card.dark-theme .legend-item:hover,
+body:not(.light-theme) .land-category-card.dark-theme .legend-item-selected,
+body:not(.light-theme) .land-category-card.dark-theme .legend-item-selected:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+html[data-theme="dark"] .land-category-card:not(.light-theme) .legend-value,
+body:not(.light-theme) .land-category-card.dark-theme .legend-value {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }

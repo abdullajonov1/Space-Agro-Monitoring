@@ -214,7 +214,7 @@
   width: 100%;
   padding: 30px 20px;
   text-align: center;
-  color: rgba(15, 23, 42, 0.72);
+  color: var(--graff-text, rgba(15, 23, 42, 0.72));
   background: transparent;
   border-radius: 12px;
 }
@@ -455,17 +455,17 @@
   width: 100% !important;
   border-collapse: collapse !important;
   color: #0f172a !important;
-  font-size: 13px !important;
+  font-size: 12px !important;
 }
 
 .kadastr-status-table th {
-  font-size: 10px !important;
+  font-size: 12px !important;
   background: rgba(255, 255, 255, 0.75) !important;
   padding: 14px 12px !important;
   text-align: left !important;
   font-weight: 900 !important;
   text-transform: uppercase !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
   letter-spacing: 0.7px !important;
   white-space: nowrap !important;
   border-radius: 0 !important;
@@ -480,6 +480,7 @@
 }
 
 .kadastr-status-table td {
+  font-size: 11px !important;
   padding: 12px !important;
   border-bottom: 1px solid rgba(15, 23, 42, 0.06) !important;
   transition:
@@ -821,7 +822,7 @@
 }
 
 .kadastr-table-top-label {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--graff-text, rgba(15, 23, 42, 0.9));
   letter-spacing: 0.01em;
@@ -955,7 +956,7 @@
   flex: 1;
   min-height: 0;
   overflow: visible;
-  border-radius: 16px;
+  border-radius: 12px;
   background: #ebebeb;
   border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: none;
@@ -1091,7 +1092,7 @@
 }
 
 .graff-index-top-label {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--graff-text, #0f172a);
   text-transform: none;
@@ -1107,7 +1108,7 @@
 }
 
 .graph-svg text {
-  font-size: 10px !important;
+  font-size: 12px !important;
 }
 
 .index-buttons-horizontal {
@@ -1116,10 +1117,38 @@
   flex-wrap: nowrap;
   gap: clamp(4px, 0.6vw, 8px);
   white-space: nowrap;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   min-height: 27px;
   margin: 1px;
   padding: 1px 3px;
+}
+
+/* When the widget itself is narrow, allow index buttons to wrap instead of clipping */
+.vegetation-graph-container.is-narrow .index-buttons-horizontal {
+  flex-wrap: wrap;
+  white-space: normal;
+  overflow-x: hidden;
+  row-gap: 6px;
+  padding-bottom: 2px;
+}
+
+.vegetation-graph-container.is-narrow .graff-index-top {
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+.vegetation-graph-container.is-narrow .graff-index-top-right {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.vegetation-graph-container.is-narrow .graff-chart-area {
+  margin-top: 4px;
+}
+
+.vegetation-graph-container.is-narrow .graph-svg-wrap {
+  min-height: 220px;
 }
 
 .graff-index-top-right {
@@ -1328,7 +1357,7 @@
   height: 100%;
   max-width: 100%;
   border: none !important;
-  border-radius: 14px;
+  border-radius: 12px;
   background: transparent !important;
   box-shadow: none !important;
 }
@@ -1616,11 +1645,11 @@
 /* ===== AgriPie3-like Day/Night Design Parity ===== */
 .kadastr-status-card,
 .kadastr-status-card.dark-theme {
-  --graff-bg: #071a2b;
-  --graff-bg-soft: #0d2f49;
+  --graff-bg: #030a12;
+  --graff-bg-soft: #061420;
   --graff-surface: rgba(9, 28, 44, 0.74);
-  --graff-th-bg: #0b2a42;
-  --graff-border: rgba(126, 214, 255, 0.24);
+  --graff-th-bg: #081a28;
+  --graff-border: rgba(126, 214, 255, 0.16);
   --graff-text: #e9f8ff;
   --graff-muted: #9cc7dd;
   --graff-shadow: 0 14px 34px rgba(3, 11, 22, 0.48);
@@ -1628,12 +1657,12 @@
   background:
     radial-gradient(
       120% 90% at 14% 10%,
-      rgba(83, 226, 255, 0.2),
+      rgba(83, 226, 255, 0.12),
       transparent 58%
     ),
     radial-gradient(
       130% 90% at 86% 0%,
-      rgba(33, 137, 255, 0.24),
+      rgba(33, 137, 255, 0.14),
       transparent 62%
     ),
     linear-gradient(156deg, var(--graff-bg) 0%, var(--graff-bg-soft) 100%) !important;
@@ -1695,7 +1724,7 @@ body.light-theme .kadastr-status-card,
   border-bottom: 1px solid var(--graff-border) !important;
   backdrop-filter: none !important;
   z-index: 30 !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
   font-weight: 400 !important;
   text-transform: none !important;
   white-space: nowrap !important;
@@ -1707,7 +1736,7 @@ body.light-theme .kadastr-status-card,
   color: var(--graff-text) !important;
   border-bottom: 1px solid
     color-mix(in srgb, var(--graff-border) 50%, transparent) !important;
-  font-size: 10px !important;
+  font-size: 11px !important;
   font-weight: 400 !important;
 }
 

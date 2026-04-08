@@ -19,6 +19,29 @@ const WIDGET_ID = "AgriLocalizationV20-Master";
 const FORCED_PORTAL_URL = "https://sgm.uzspace.uz/portal";
 const FAIL_OPEN_IF_NO_MATCH = false;
 
+// Matches EvapoRegionV20/LocalizationWidgetV20 body background behavior (see AgriFilter.css)
+const APP_BG_DARK_CLASS = "evapo-app-bg-dark";
+const APP_BG_LIGHT_CLASS = "evapo-app-bg-light";
+
+const applyAppBackgroundTheme = (theme: "dark" | "light"): void => {
+  try {
+    const root = document.documentElement;
+    const body = document.body;
+    const nextClass = theme === "dark" ? APP_BG_DARK_CLASS : APP_BG_LIGHT_CLASS;
+
+    if (root.classList.contains(nextClass) && body.classList.contains(nextClass))
+      return;
+
+    root.classList.remove(APP_BG_DARK_CLASS, APP_BG_LIGHT_CLASS);
+    body.classList.remove(APP_BG_DARK_CLASS, APP_BG_LIGHT_CLASS);
+
+    root.classList.add(nextClass);
+    body.classList.add(nextClass);
+  } catch {
+    // DOM might be unavailable in some environments
+  }
+};
+
 /** VH category definitions for bar chart (must match AgriBar) */
 const VH_CATEGORIES = [
   { value: "1-Juda yaxshi", label: "Жуда яхши", order: 1, color: "#00ff88" },
@@ -55,6 +78,53 @@ export interface VHBarDataItem {
 export interface VHBarData {
   categories: VHBarDataItem[];
   totalCount: number;
+}
+
+type CropRendererMode = "off" | "on";
+
+const OUTLINE_TRANSPARENT = {
+  color: [0, 0, 0, 0] as [number, number, number, number],
+  width: 0,
+};
+
+const CROP_RENDERER_ITEMS: Array<{ value: string; label: string; color: string }> =
+  [
+    { value: "bug'doy", label: "Bug'doy", color: "#ffaa00" },
+    { value: "bugdoy", label: "Bug'doy", color: "#ffaa00" },
+    { value: "paxta", label: "Paxta", color: "#ffffff" },
+    { value: "makka", label: "Makka", color: "#09b01f" },
+    { value: "sholi", label: "Sholi", color: "#3d7491" },
+    { value: "mosh", label: "Mosh", color: "#8200fc" },
+    { value: "beda", label: "Beda", color: "#fad08c" },
+    { value: "ozuqa", label: "Ozuqa", color: "#895a8c" },
+    { value: "loviya", label: "Loviya", color: "#9dff00" },
+    { value: "poliz", label: "Poliz", color: "#cc4400" },
+    { value: "tariq", label: "Tariq", color: "#ffff00" },
+    { value: "bog'", label: "Bog'", color: "#047a12" },
+    { value: "bog", label: "Bog'", color: "#047a12" },
+    { value: "yeryong'oq", label: "Yeryong'oq", color: "#997128" },
+    { value: "yeryongoq", label: "Yeryong'oq", color: "#997128" },
+    { value: "sabzi", label: "Sabzi", color: "#ff0000" },
+    { value: "kungaboqar", label: "Kungaboqar", color: "#55ff00" },
+  ];
+
+function hexToRgba(hex: string): [number, number, number, number] {
+  const h = (hex || "").replace("#", "");
+  const r = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+  return r
+    ? [parseInt(r[1], 16), parseInt(r[2], 16), parseInt(r[3], 16), 1.0]
+    : [170, 170, 170, 1.0];
+}
+
+function normalizeCropKey(raw: string): string {
+  return (raw ?? "")
+    .toString()
+    .normalize("NFKC")
+    .replace(/\u00A0/g, " ")
+    .replace(/['''ʻʼ`]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 const GROUP_ID_TO_VIEW: Record<
@@ -116,6 +186,7 @@ interface GeoWidgetState extends FilterState {
   connectionStatus: "idle" | "connecting" | "connected" | "failed";
   initialPreselectionProcessed: boolean;
   openToolbarMenu: "yil" | "language" | "theme" | null;
+  cropRendererMode: CropRendererMode;
   graffSearchText: string;
   graffSearchSuggestions: Array<{ uniqueid: string; f_name: string }> | [];
   graffSearchShowSuggestions: boolean;
@@ -222,6 +293,44 @@ const LogoutIcon = () => (
   </svg>
 );
 
+/** Ekin turi — don boshog‘i / ekin boshi (agro). */
+const CropRendererIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    className="agri-toolbar-svg"
+    aria-hidden="true"
+  >
+    <path
+      d="M12 21.5V11"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+    />
+    <path
+      d="M7.5 7.5 12 4 16.5 7.5"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M7.5 11.5 12 8 16.5 11.5"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M7.5 15.5 12 12 16.5 15.5"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export default class AgriLocalization extends React.PureComponent<
   AllWidgetProps<any>,
   GeoWidgetState
@@ -240,6 +349,10 @@ export default class AgriLocalization extends React.PureComponent<
   private _yilToolbarItemRef = React.createRef<HTMLDivElement>();
   private _languageToolbarItemRef = React.createRef<HTMLDivElement>();
   private _themeToolbarItemRef = React.createRef<HTMLDivElement>();
+
+  private _originalLayerRenderers: Map<string, __esri.Renderer | null> =
+    new Map();
+  private _cropRendererAutoEnabled = false;
 
   /** Cache of NDVI bucket → polygon join IDs (uniqueid) for current yil/viloyat. */
   private _ndviBucketToIds: Record<string, string[]> = {};
@@ -275,6 +388,202 @@ export default class AgriLocalization extends React.PureComponent<
       (this.state.lockedViloyat || this.state.viloyat || "").toString(),
     );
   }
+
+  private findLayerFieldName(
+    layer: __esri.FeatureLayer,
+    name: string,
+  ): string | null {
+    try {
+      const fields: any[] = (layer as any)?.fields || [];
+      if (!Array.isArray(fields) || !fields.length) return null;
+      const exact = fields.find((f) => String(f?.name || "") === name);
+      if (exact?.name) return exact.name;
+      const ci = fields.find(
+        (f) => String(f?.name || "").toLowerCase() === name.toLowerCase(),
+      );
+      if (ci?.name) return ci.name;
+      const partial = fields.find((f) => {
+        const n = String(f?.name || "").toLowerCase();
+        const q = name.toLowerCase();
+        return n.includes(q) || q.includes(n);
+      });
+      return partial?.name ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  private getCropRendererTargetLayers = (): __esri.FeatureLayer[] => {
+    const layers: __esri.FeatureLayer[] = [];
+    if (Array.isArray(this.state.featureLayers) && this.state.featureLayers.length) {
+      const active = this.state.featureLayers.filter((fl) => {
+        const w = fl.definitionExpression || "1=0";
+        return w && w !== "1=0";
+      });
+      layers.push(...(active.length ? active : this.state.featureLayers));
+    } else if (this.state.featureLayer) {
+      layers.push(this.state.featureLayer);
+    }
+    return layers;
+  };
+
+  private resetCropRenderer = (): void => {
+    const layers = this.getCropRendererTargetLayers();
+    for (const layer of layers) {
+      try {
+        const layerKey = this.getLayerKey(layer);
+        if (this._originalLayerRenderers.has(layerKey)) {
+          (layer as any).renderer = this._originalLayerRenderers.get(layerKey);
+        }
+        try {
+          (layer as any).refresh?.();
+        } catch {}
+      } catch {}
+    }
+  };
+
+  private applyCropRenderer = async (): Promise<void> => {
+    const effectiveViloyat = this.getEffectiveViloyat();
+    if (!effectiveViloyat) return;
+
+    const layers = this.getCropRendererTargetLayers();
+    if (!layers.length) return;
+
+    const selectedTuriKey = normalizeCropKey(this.state.turi || "");
+    const colorByKey = new Map<string, string>();
+    for (const item of CROP_RENDERER_ITEMS) {
+      colorByKey.set(normalizeCropKey(item.value), item.color);
+    }
+
+    for (const layer of layers) {
+      try {
+        if (!(layer as any)?.loaded && typeof (layer as any)?.load === "function") {
+          try {
+            await (layer as any).load();
+          } catch {}
+        }
+
+        const field = this.findLayerFieldName(layer, "turi");
+        if (!field) continue;
+
+        const layerKey = this.getLayerKey(layer);
+        if (!this._originalLayerRenderers.has(layerKey)) {
+          this._originalLayerRenderers.set(layerKey, (layer as any).renderer ?? null);
+        }
+
+        // If a specific crop is selected, paint everything immediately
+        // (no async query) to avoid the "green then crop color" flicker.
+        if (selectedTuriKey) {
+          const color = colorByKey.get(selectedTuriKey) ?? "#aaaaaa";
+          (layer as any).renderer = {
+            type: "simple",
+            symbol: {
+              type: "simple-fill",
+              color: hexToRgba(color),
+              outline: OUTLINE_TRANSPARENT,
+            },
+          } as unknown as __esri.Renderer;
+          try {
+            (layer as any).refresh?.();
+          } catch {}
+          continue;
+        }
+
+        const where = (layer as any).definitionExpression || "1=1";
+
+        // Build uniqueValueInfos from *actual* values in the current selection,
+        // so case/variant mismatches don't fall back to defaultSymbol.
+        let distinctValues: string[] = [];
+        try {
+          const q: any = (layer as any).createQuery?.() ?? {};
+          q.where = where;
+          q.returnGeometry = false;
+          q.outFields = [field];
+          q.groupByFieldsForStatistics = [field];
+          q.outStatistics = [
+            {
+              statisticType: "count",
+              onStatisticField: "1",
+              outStatisticFieldName: "cnt",
+            },
+          ];
+          const res: any = await (layer as any).queryFeatures(q);
+          const feats: any[] = res?.features || [];
+          distinctValues = feats
+            .map((f) => f?.attributes?.[field])
+            .filter((v) => v !== null && v !== undefined && String(v).trim() !== "")
+            .map((v) => String(v));
+        } catch {
+          distinctValues = [];
+        }
+
+        const uniqueValueInfos =
+          distinctValues.length > 0
+            ? distinctValues.map((v) => {
+                const key = normalizeCropKey(v);
+                const color = colorByKey.get(key) ?? "#aaaaaa";
+                return {
+                  value: v,
+                  label: v,
+                  symbol: {
+                    type: "simple-fill",
+                    color: hexToRgba(color),
+                    outline: OUTLINE_TRANSPARENT,
+                  },
+                };
+              })
+            : CROP_RENDERER_ITEMS.map((c) => ({
+                value: c.value,
+                label: c.label,
+                symbol: {
+                  type: "simple-fill",
+                  color: hexToRgba(c.color),
+                  outline: OUTLINE_TRANSPARENT,
+                },
+              }));
+
+        (layer as any).renderer = {
+          type: "unique-value",
+          field,
+          defaultSymbol: {
+            type: "simple-fill",
+            color: [170, 170, 170, 0.18],
+            outline: OUTLINE_TRANSPARENT,
+          },
+          uniqueValueInfos,
+        } as unknown as __esri.Renderer;
+
+        try {
+          (layer as any).refresh?.();
+        } catch {}
+      } catch {}
+    }
+  };
+
+  private syncCropRenderer = async (): Promise<void> => {
+    const effectiveViloyat = this.getEffectiveViloyat();
+    const shouldEnable =
+      this.state.cropRendererMode === "on" && Boolean(effectiveViloyat);
+
+    if (!shouldEnable) {
+      this.resetCropRenderer();
+      return;
+    }
+
+    await this.applyCropRenderer();
+  };
+
+  private toggleCropRenderer = (): void => {
+    this.setState(
+      (prev) => ({
+        cropRendererMode: prev.cropRendererMode === "on" ? "off" : "on",
+      }),
+      () => {
+        this._cropRendererAutoEnabled = false;
+        void this.syncCropRenderer();
+      },
+    );
+  };
 
   private getLayerMatchStateForViloyat(
     layer: __esri.FeatureLayer,
@@ -372,6 +681,7 @@ export default class AgriLocalization extends React.PureComponent<
       initialPreselectionProcessed: false,
       polygonMode: false,
       openToolbarMenu: null,
+      cropRendererMode: "off",
       graffSearchText: "",
       graffSearchSuggestions: [],
       graffSearchShowSuggestions: false,
@@ -565,6 +875,19 @@ export default class AgriLocalization extends React.PureComponent<
     }
 
     // ✅ When only turi (crop) changes: keep vh so bar + crop filters apply together
+
+    // Auto-enable crop renderer when user selects a crop (from AgriPie3),
+    // but only for the session until user manually toggles it.
+    if (turiChanged) {
+      const nextTuri = (updates.turi ?? "").toString().trim();
+      if (nextTuri && this.state.cropRendererMode === "off") {
+        (updates as any).cropRendererMode = "on";
+        this._cropRendererAutoEnabled = true;
+      } else if (!nextTuri && this._cropRendererAutoEnabled) {
+        (updates as any).cropRendererMode = "off";
+        this._cropRendererAutoEnabled = false;
+      }
+    }
 
     const hasChanges = Object.keys(updates).some(
       (key) => (updates as any)[key] !== (this.state as any)[key],
@@ -1392,6 +1715,9 @@ export default class AgriLocalization extends React.PureComponent<
       root.classList.add("light-theme");
       body.classList.add("light-theme");
     }
+
+    // Keep page background in sync with theme (same as LocalizationWidgetV20)
+    applyAppBackgroundTheme(theme);
   };
 
   private handleThemeChange = (event: any) => {
@@ -2106,8 +2432,13 @@ export default class AgriLocalization extends React.PureComponent<
       clauses.push(viloyatClause);
     }
 
-    // Tuman → district number from stored mapping
-    if (tuman) {
+    // Tuman → district number from stored mapping.
+    // In default republic mode (no effective viloyat), ignore stale tuman so
+    // VH bar reflects full-country totals for the selected year.
+    const hasEffectiveViloyat = !!this.normalizeApos(
+      (lockedViloyat || viloyat || "").toString(),
+    );
+    if (tuman && (includeViloyat || hasEffectiveViloyat)) {
       const tumanClause = this.buildTumanDistrictClause();
       if (tumanClause) clauses.push(tumanClause);
     }
@@ -2174,11 +2505,19 @@ export default class AgriLocalization extends React.PureComponent<
    * one with data, so the bar always shows the freshest available NDVI.
    */
   private computeVhBarData = async (): Promise<VHBarData | null> => {
-    const allLayers = this.state.featureLayers?.length
+    const allConfiguredLayers = this.state.featureLayers?.length
       ? this.state.featureLayers
       : this.state.featureLayer
         ? [this.state.featureLayer]
         : [];
+    const effectiveViloyat = this.getEffectiveViloyat();
+    // For default (no viloyat) mode, use only the canonical/republic layer.
+    // Mixing multiple regional layers can choose an inconsistent NDVI date and
+    // produce totals that are lower than a single selected viloyat.
+    const allLayers =
+      !effectiveViloyat && this.state.featureLayer
+        ? [this.state.featureLayer]
+        : allConfiguredLayers;
     if (!allLayers.length) return null;
 
     const cfg = (this.props.config || {}) as any;
@@ -2210,9 +2549,14 @@ export default class AgriLocalization extends React.PureComponent<
 
     let candidates: string[];
     const forcedNdvi = (this.state.ndviDate || "").trim();
-    // Keep one NDVI date across default/regional scope changes so totals are
-    // comparable. If state already has a valid date, use only that date.
-    if (forcedNdvi && knownDates.includes(forcedNdvi)) {
+    // Respect a single fixed NDVI date only when user explicitly locked it.
+    // When geography changes (viloyat/tuman), ndviDateLocked is reset and we
+    // must allow fallback to earlier dates that actually have data.
+    if (
+      this.state.ndviDateLocked &&
+      forcedNdvi &&
+      knownDates.includes(forcedNdvi)
+    ) {
       candidates = [forcedNdvi];
     } else {
       const sorted = knownDates.slice().sort((a, b) => {
@@ -2692,6 +3036,7 @@ export default class AgriLocalization extends React.PureComponent<
     const prevExpr = this._prevDefinitionExpression;
 
     await this.applyFiltersPersistent();
+    await this.syncCropRenderer();
 
     const expressionDigest: string = (featureLayers || [])
       .map((fl) => fl.definitionExpression || "1=0")
@@ -2857,6 +3202,7 @@ export default class AgriLocalization extends React.PureComponent<
       ndviDateOptions,
       isDarkTheme,
       graffSearchText,
+      cropRendererMode,
     } = this.state;
 
     const { language } = this.state as any;
@@ -3015,6 +3361,18 @@ export default class AgriLocalization extends React.PureComponent<
                         title={themeLabel}
                       >
                         <PaletteIcon />
+                      </button>
+                    </div>
+
+                    <div className="agri-v20-toolbar-item">
+                      <button
+                        type="button"
+                        className={`agri-v20-toolbar-btn ${cropRendererMode === "on" ? "is-active" : ""}`}
+                        onClick={this.toggleCropRenderer}
+                        disabled={!this.getEffectiveViloyat()}
+                        title="Ekin turi ranglari"
+                      >
+                        <CropRendererIcon />
                       </button>
                     </div>
 

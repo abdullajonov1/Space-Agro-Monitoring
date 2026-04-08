@@ -80,7 +80,7 @@
 }
 
 .construction-years-header-title {
-  font-size: 12px !important;
+  font-size: 14px !important;
   font-weight: 400 !important;
   color: #0b1220 !important;
   text-align: left !important;
@@ -553,7 +553,7 @@
 
 /* Axis + grid (light mode) */
 .construction-years-card .recharts-layer.recharts-cartesian-axis-tick text {
-  font-size: 10px !important;
+  font-size: 12px !important;
   fill: #111827 !important;
   cursor: pointer !important;
   font-weight: 400 !important;
@@ -561,7 +561,7 @@
 
 .construction-years-card .recharts-label-content,
 .construction-years-card .recharts-label-list text {
-  font-size: 10px !important;
+  font-size: 12px !important;
   font-weight: 300 !important;
   text-shadow: none !important;
   fill: #000000 !important;
@@ -670,7 +670,7 @@ body:not(.light-theme)
     margin-bottom: 6px !important;
   }
   .construction-years-header-title {
-    font-size: 12px !important;
+    font-size: 14px !important;
   }
   .construction-years-header-controls {
     position: static !important;
@@ -723,10 +723,10 @@ html.dark-theme .construction-years-card,
 html[data-theme="dark"] .construction-years-card,
 body.dark-theme .construction-years-card,
 .construction-years-card.dark-theme {
-  --bar-bg: #071a2b;
-  --bar-bg-soft: #0d2f49;
+  --bar-bg: #030a12;
+  --bar-bg-soft: #061420;
   --bar-surface: rgba(9, 28, 44, 0.74);
-  --bar-border: rgba(126, 214, 255, 0.24);
+  --bar-border: rgba(126, 214, 255, 0.16);
   --bar-text: #e9f8ff;
   --bar-muted: #9cc7dd;
   --bar-shadow: 0 14px 34px rgba(3, 11, 22, 0.48);
@@ -734,12 +734,12 @@ body.dark-theme .construction-years-card,
   background:
     radial-gradient(
       120% 90% at 14% 10%,
-      rgba(83, 226, 255, 0.2),
+      rgba(83, 226, 255, 0.12),
       transparent 58%
     ),
     radial-gradient(
       130% 90% at 86% 0%,
-      rgba(33, 137, 255, 0.24),
+      rgba(33, 137, 255, 0.14),
       transparent 62%
     ),
     linear-gradient(156deg, var(--bar-bg) 0%, var(--bar-bg-soft) 100%) !important;
@@ -888,7 +888,7 @@ body:not(.light-theme)
   border-radius: clamp(18px, 3vw, 20px) !important;
 }
 .construction-years-card[data-bar-size="md"] .construction-years-header-title {
-  font-size: clamp(11px, 2.2vw, 12px) !important;
+  font-size: 14px !important;
 }
 .construction-years-card[data-bar-size="md"]
   .construction-years-header-controls {
@@ -917,7 +917,7 @@ body:not(.light-theme)
   margin-bottom: clamp(4px, 1vw, 6px) !important;
 }
 .construction-years-card[data-bar-size="sm"] .construction-years-header-title {
-  font-size: clamp(10px, 2vw, 11px) !important;
+  font-size: 14px !important;
 }
 .construction-years-card[data-bar-size="sm"]
   .construction-years-header-controls {
@@ -932,7 +932,7 @@ body:not(.light-theme)
   display: none !important;
 }
 .construction-years-card[data-bar-size="sm"] .recharts-label-content {
-  font-size: clamp(9px, 1.8vw, 10px) !important;
+  font-size: 12px !important;
 }
 
 /* ── XS (< 220px) ── */
@@ -945,7 +945,7 @@ body:not(.light-theme)
   display: none !important;
 }
 .construction-years-card[data-bar-size="xs"] .construction-years-header-title {
-  font-size: clamp(9px, 1.8vw, 10px) !important;
+  font-size: 14px !important;
 }
 .construction-years-card[data-bar-size="xs"] .recharts-label-content {
   display: none !important;
@@ -968,7 +968,7 @@ body:not(.light-theme)
 /* Reduce LabelList font size on small screens */
 @media (max-width: 480px) {
   .construction-years-card .recharts-label-content {
-    font-size: 10px !important;
+    font-size: 12px !important;
   }
 }
 
@@ -977,7 +977,7 @@ body:not(.light-theme)
 .construction-years-card[data-bar-size="md"] .construction-years-header-title,
 .construction-years-card[data-bar-size="sm"] .construction-years-header-title,
 .construction-years-card[data-bar-size="xs"] .construction-years-header-title {
-  font-size: 12px !important;
+  font-size: 14px !important;
   font-weight: 400 !important;
 }
 
@@ -1012,9 +1012,9 @@ body:not(.light-theme)
 }
 
 .construction-years-card[data-bar-size="sm"] .construction-years-header-title {
-  font-size: 12px !important;
+  font-size: 14px !important;
 }
 
 .construction-years-card[data-bar-size="xs"] .construction-years-header-title {
-  font-size: 12px !important;
+  font-size: 14px !important;
 }

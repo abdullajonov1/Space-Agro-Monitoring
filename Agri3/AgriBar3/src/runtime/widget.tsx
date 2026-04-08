@@ -68,9 +68,56 @@ export default class AgriBar extends React.PureComponent<
   private _containerRef = React.createRef<HTMLDivElement>();
   private _resizeObserver: ResizeObserver | null = null;
 
+  private normalizeLanguage = (raw?: string | null): "uz_cyr" | "uz_lat" | "ru" => {
+    const v = String(raw || "")
+      .trim()
+      .toLowerCase();
+
+    if (v === "ru" || v === "russian") return "ru";
+    if (
+      v === "uz_cyr" ||
+      v === "uz-cyr" ||
+      v === "uz_cyrillic" ||
+      v === "uz-cyrillic"
+    ) {
+      return "uz_cyr";
+    }
+    if (
+      v === "uz_lat" ||
+      v === "uz-lat" ||
+      v === "uz_latin" ||
+      v === "uz-latin" ||
+      v === "uz"
+    ) {
+      return "uz_lat";
+    }
+
+    return "uz_lat";
+  };
+
+  private resolveInitialLanguage = (): "uz_cyr" | "uz_lat" | "ru" => {
+    try {
+      const fromUrl =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("lang")
+          : null;
+      const fromStorage =
+        typeof window !== "undefined"
+          ? localStorage.getItem("app_lang") ||
+            localStorage.getItem("evapo_app_lang") ||
+            localStorage.getItem("agro_lang")
+          : null;
+
+      return this.normalizeLanguage(fromUrl || fromStorage);
+    } catch (_e) {
+      return "uz_lat";
+    }
+  };
+
   constructor(props: AgriBarProps) {
     super(props);
     this._isMounted = false;
+    const initialLanguage = this.resolveInitialLanguage();
     this.state = {
       loading: false,
       error: null,
@@ -83,7 +130,7 @@ export default class AgriBar extends React.PureComponent<
       displayCount: -1,
       sortOrder: "desc",
       isDarkTheme: false,
-      language: "uz_cyr",
+      language: initialLanguage,
       lockedViloyat: null,
       widgetSize: "lg",
       compactHeight: false,
@@ -378,9 +425,9 @@ export default class AgriBar extends React.PureComponent<
         : language === "uz_lat"
           ? "Vegetatsiya holati"
           : "Вегетация ҳолати";
-
-    const selectYearTitle =
-      language === "ru"
+        <div
+          className="construction-years-header-title"
+          style={{ fontSize: 14, lineHeight: "14px" }}
         ? "📅 Выберите год"
         : language === "uz_lat"
           ? "📅 Yilni tanlang"
@@ -453,8 +500,8 @@ export default class AgriBar extends React.PureComponent<
             barSize: 26,
             xAxisHeight: 17,
             xTickOffsetY: 1,
-            xTickFont: 10,
-            valueFont: 10,
+            xTickFont: 12,
+            valueFont: 12,
             valueOffset: 6,
             valuePrefix: "",
           }
@@ -464,8 +511,8 @@ export default class AgriBar extends React.PureComponent<
               barSize: 38,
               xAxisHeight: 18,
               xTickOffsetY: 1,
-              xTickFont: 10,
-              valueFont: 10,
+              xTickFont: 12,
+              valueFont: 12,
               valueOffset: 7,
               valuePrefix: "",
             }
@@ -475,8 +522,8 @@ export default class AgriBar extends React.PureComponent<
                 barSize: 50,
                 xAxisHeight: 20,
                 xTickOffsetY: 1,
-                xTickFont: 10,
-                valueFont: 10,
+                xTickFont: 12,
+                valueFont: 12,
                 valueOffset: 8,
                 valuePrefix: "",
               }
@@ -485,8 +532,8 @@ export default class AgriBar extends React.PureComponent<
                 barSize: 64,
                 xAxisHeight: 20,
                 xTickOffsetY: 1,
-                xTickFont: 10,
-                valueFont: 10,
+                xTickFont: 12,
+                valueFont: 12,
                 valueOffset: 9,
                 valuePrefix: "",
               };
@@ -521,7 +568,7 @@ export default class AgriBar extends React.PureComponent<
           <div className="construction-years-header">
             <div
               className="construction-years-header-title"
-              style={{ fontSize: 12, lineHeight: "12px" }}
+              style={{ fontSize: 14, lineHeight: "14px" }}
             >
               {titleText}
             </div>

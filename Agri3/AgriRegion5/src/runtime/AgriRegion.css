@@ -103,7 +103,7 @@
 }
 
 .regional-stats-header-title {
-  font-size: 13px !important;
+  font-size: 14px !important;
   font-weight: 900 !important;
   color: rgba(15, 23, 42, 0.86) !important;
   text-align: left !important;
@@ -301,7 +301,7 @@
   background: #ffffff !important;
   border-radius: 16px !important;
   border: 1px solid rgba(15, 23, 42, 0.08) !important;
-  overflow: hidden !important;
+  overflow: visible !important;
 
   margin-top: 8px !important;
   backdrop-filter: none !important;
@@ -310,9 +310,17 @@
 
 /* Recharts: axes and grid (light) */
 .regional-stats-card .recharts-layer.recharts-cartesian-axis-tick text {
-  font-size: 12px !important;
+  font-size: 10px !important;
   fill: #111111 !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
+  text-anchor: end !important;
+  word-break: break-word !important;
+  overflow: visible !important;
+}
+
+.regional-stats-card .recharts-layer.recharts-cartesian-axis-tick text tspan {
+  text-anchor: end !important;
+  overflow: visible !important;
 }
 
 .regional-stats-card .recharts-cartesian-grid-horizontal line {
@@ -375,7 +383,7 @@
 }
 
 .regional-name {
-  font-size: 10px !important;
+  font-size: 12px !important;
   color: rgba(15, 23, 42, 0.6) !important;
   font-weight: 800 !important;
 
@@ -389,7 +397,7 @@
 }
 
 .regional-value {
-  font-size: 10px !important;
+  font-size: 12px !important;
   font-weight: 900 !important;
 
   position: absolute;
@@ -643,7 +651,7 @@ body.dark-theme .regional-stats-card .regional-stats-loading-container p,
   }
 
   .regional-stats-header-title {
-    font-size: 12px !important;
+    font-size: 14px !important;
     order: 1 !important;
     width: 100% !important;
     margin-bottom: 10px !important;
@@ -663,10 +671,10 @@ body.dark-theme .regional-stats-card .regional-stats-loading-container p,
 
   .regional-name {
     max-width: 80px;
-    font-size: 10px !important;
+    font-size: 12px !important;
   }
   .regional-value {
-    font-size: 10px !important;
+    font-size: 12px !important;
   }
 }
 
@@ -693,10 +701,10 @@ body.dark-theme .regional-stats-card .regional-stats-loading-container p,
 /* ===== AgriGraff4 parity overrides ===== */
 .regional-stats-card,
 .regional-stats-card.dark-theme {
-  --region-bg: #071a2b;
-  --region-bg-soft: #0d2f49;
+  --region-bg: #030a12;
+  --region-bg-soft: #061420;
   --region-surface: rgba(9, 28, 44, 0.74);
-  --region-border: rgba(126, 214, 255, 0.24);
+  --region-border: rgba(126, 214, 255, 0.16);
   --region-text: #e9f8ff;
   --region-muted: #9cc7dd;
   --region-bar-fill: #00aeff;
@@ -705,12 +713,12 @@ body.dark-theme .regional-stats-card .regional-stats-loading-container p,
   background:
     radial-gradient(
       120% 90% at 14% 10%,
-      rgba(83, 226, 255, 0.2),
+      rgba(83, 226, 255, 0.12),
       transparent 58%
     ),
     radial-gradient(
       130% 90% at 86% 0%,
-      rgba(33, 137, 255, 0.24),
+      rgba(33, 137, 255, 0.14),
       transparent 62%
     ),
     linear-gradient(156deg, var(--region-bg) 0%, var(--region-bg-soft) 100%) !important;
@@ -852,15 +860,24 @@ body.light-theme .regional-stats-card,
 
 .regional-stats-header {
   min-height: 40px !important;
+  align-items: center !important;
   gap: clamp(6px, 1.6vw, 10px) !important;
+}
+
+.regional-stats-header-left {
+  min-width: 0 !important;
+  align-items: center !important;
 }
 
 .regional-stats-header-title {
   font-size: clamp(11px, 1.8vw, 13px) !important;
-  max-width: calc(100% - 220px);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: 1 1 auto !important;
+  max-width: none !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere;
+  line-height: 1.2 !important;
 }
 
 .regional-stats-header-controls {
@@ -873,7 +890,7 @@ body.light-theme .regional-stats-card,
 
 @media (max-width: 900px) {
   .regional-stats-header-title {
-    max-width: calc(100% - 180px);
+    max-width: none !important;
   }
 
   .regional-stats-card .regional-stats-back-button,
@@ -985,7 +1002,7 @@ body.light-theme .regional-stats-card,
 .regional-stats-header-title {
   text-transform: none !important;
   letter-spacing: 0 !important;
-  font-size: 12px !important;
+  font-size: 14px !important;
 }
 
 .regional-stats-card,
@@ -1101,6 +1118,8 @@ body.light-theme .regional-stats-card,
   width: 100%;
   min-height: 100%;
   margin-top: -18px;
+  overflow: visible !important;
+  padding-left: 2px !important;
 }
 
 .regional-stats-card .regional-tooltip {
@@ -1137,7 +1156,7 @@ body.light-theme .regional-stats-card,
 .regional-stats-card .recharts-layer.recharts-cartesian-axis-tick text,
 .regional-stats-card .recharts-label-list text,
 .regional-stats-card .recharts-text.recharts-label {
-  font-size: 10px !important;
+  font-size: 12px !important;
 }
 
 html.light-theme .regional-stats-card .regional-tooltip,
@@ -1387,4 +1406,12 @@ body.light-theme .regional-stats-card .regional-stats-display-count,
   .regional-value {
     color: black !important;
   }
+}
+
+/* Final card radius lock */
+.regional-stats-card,
+.regional-stats-card.dark-theme,
+.regional-stats-card.light-theme {
+  border-radius: 12px !important;
+  overflow: hidden !important;
 }
