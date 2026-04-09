@@ -940,6 +940,34 @@ body:not(.light-theme)
   color: #e9f8ff !important;
 }
 
+/* Dark theme: keep selected crop text readable (white) */
+html[data-theme="dark"] .legend-item-selected .legend-label,
+html[data-theme="dark"] .legend-item-selected .legend-value,
+html[data-theme="dark"] .legend-item-selected .legend-area-value,
+html[data-theme="dark"] .legend-item-selected .legend-percent-value,
+body:not(.light-theme)
+  .land-category-card.dark-theme
+  .legend-item-selected
+  .legend-label,
+body:not(.light-theme)
+  .land-category-card.dark-theme
+  .legend-item-selected
+  .legend-value,
+body:not(.light-theme)
+  .land-category-card.dark-theme
+  .legend-item-selected
+  .legend-area-value,
+body:not(.light-theme)
+  .land-category-card.dark-theme
+  .legend-item-selected
+  .legend-percent-value,
+.land-category-card.dark-theme .legend-item-selected .legend-label,
+.land-category-card.dark-theme .legend-item-selected .legend-value,
+.land-category-card.dark-theme .legend-item-selected .legend-area-value,
+.land-category-card.dark-theme .legend-item-selected .legend-percent-value {
+  color: #e9f8ff !important;
+}
+
 @media (max-width: 1024px) {
   .land-category-header {
     padding: 14px 14px 8px !important;
