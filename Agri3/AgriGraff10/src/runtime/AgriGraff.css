@@ -1,0 +1,1929 @@
+/* ===== Kadastr Status Widget - Warm Paper UI Theme (matches AgriFilter/VH) ===== */
+
+.kadastr-status-card {
+  height: 100% !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+
+  background: #ebebeb !important;
+
+  border-radius: 12px !important;
+  box-shadow:
+    0 18px 55px rgba(15, 23, 42, 0.1),
+    0 0 0 1px rgba(15, 23, 42, 0.06) !important;
+
+  overflow: hidden !important;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif !important;
+  position: relative !important;
+  color: #0f172a !important;
+}
+
+.kadastr-status-card::before {
+  content: none !important;
+}
+
+.kadastr-status-content {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  padding: 18px !important;
+  background: #ebebeb !important;
+  animation: fadeInUp 0.6s ease-out !important;
+}
+
+/* Info blocks */
+.regional-stats-info {
+  text-align: center;
+  padding: 34px 18px;
+  color: rgba(15, 23, 42, 0.7);
+}
+
+.regional-stats-info h3 {
+  font-size: 17px;
+  margin-bottom: 10px;
+  color: #0b1220;
+  font-weight: 800;
+}
+
+.regional-stats-info p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(15, 23, 42, 0.65);
+}
+
+/* Columns */
+.number-column {
+  text-align: right;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  width: 120px;
+}
+.name-column {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wide-column {
+  width: 250px;
+}
+.default-column {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Search */
+.kadastr-status-search {
+  width: 100%;
+}
+
+.kadastr-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.75);
+  color: #0f172a;
+  outline: none;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(10px);
+}
+.kadastr-search-input::placeholder {
+  color: rgba(15, 23, 42, 0.45);
+}
+.kadastr-search-input:focus {
+  border-color: rgba(245, 158, 11, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(245, 158, 11, 0.18),
+    0 16px 30px rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
+}
+
+.kadastr-search-button,
+.kadastr-search-clear {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease,
+    opacity 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.kadastr-search-button {
+  background: linear-gradient(135deg, #10b981 0%, #f59e0b 100%);
+  color: #0b1220;
+  box-shadow:
+    0 14px 28px rgba(16, 185, 129, 0.16),
+    0 12px 26px rgba(245, 158, 11, 0.12);
+}
+.kadastr-search-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.kadastr-search-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+.kadastr-search-clear {
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.1) 0%,
+    rgba(15, 23, 42, 0.06) 100%
+  );
+  color: rgba(15, 23, 42, 0.85);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+}
+.kadastr-search-clear:hover {
+  transform: translateY(-1px);
+}
+
+/* Map connection indicator */
+.map-connection-indicator {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  z-index: 100;
+  transition: all 0.2s ease;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.map-connection-indicator.connected {
+  background: rgba(16, 185, 129, 0.95);
+  color: #062a1e;
+}
+
+.map-connection-indicator.connecting {
+  background: rgba(245, 158, 11, 0.95);
+  color: #2a1602;
+  animation: spin 1s linear infinite;
+}
+
+.map-connection-indicator.failed,
+.map-connection-indicator.idle {
+  background: rgba(220, 38, 38, 0.92);
+  color: #2a0505;
+}
+
+.indicator-icon {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Loading states */
+.kadastr-status-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 30px 20px;
+  text-align: center;
+  color: var(--graff-text, rgba(15, 23, 42, 0.72));
+  background: transparent;
+  border-radius: 12px;
+}
+
+.kadastr-status-loading-container::before {
+  content: none;
+}
+
+.kadastr-status-loading-container .jimu-loading {
+  display: none !important;
+}
+
+.regional-modern-loader {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.regional-modern-loader-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #2ad6ff, #1199d8);
+  box-shadow: 0 0 12px rgba(42, 214, 255, 0.48);
+  animation: regional-dot-bounce 0.9s ease-in-out infinite;
+}
+
+.regional-modern-loader-dot:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.regional-modern-loader-dot:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+@keyframes regional-dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  40% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+}
+
+/* Error states */
+.kadastr-status-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+  color: rgba(15, 23, 42, 0.75);
+}
+
+.kadastr-status-error p {
+  color: #dc2626;
+  margin-bottom: 14px;
+  font-weight: 800;
+}
+
+.kadastr-status-retry-button {
+  background: linear-gradient(135deg, #10b981 0%, #f59e0b 100%);
+  color: #0b1220;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+  box-shadow:
+    0 14px 28px rgba(16, 185, 129, 0.16),
+    0 12px 26px rgba(245, 158, 11, 0.12);
+}
+.kadastr-status-retry-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+.kadastr-status-retry-button:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* No data */
+.kadastr-status-no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+  color: rgba(15, 23, 42, 0.75);
+}
+.kadastr-status-no-data h3 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #0b1220;
+  font-weight: 900;
+}
+.kadastr-status-no-data p {
+  font-size: 13px;
+  color: rgba(15, 23, 42, 0.65);
+  margin-bottom: 18px;
+}
+
+/* Filter summary and controls */
+.kadastr-status-filter-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+}
+
+.filter-count-badge {
+  background: linear-gradient(135deg, #10b981 0%, #f59e0b 100%);
+  color: #0b1220;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  box-shadow:
+    0 12px 24px rgba(16, 185, 129, 0.14),
+    0 10px 22px rgba(245, 158, 11, 0.12);
+}
+
+.kadastr-status-reset-all-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  background: rgba(15, 23, 42, 0.08);
+  color: rgba(15, 23, 42, 0.85);
+
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.kadastr-status-reset-all-button:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
+}
+
+.kadastr-status-reset-all-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+}
+
+.kadastr-status-reset-icon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  transition: transform 0.25s ease;
+}
+
+.kadastr-status-reset-all-button:hover:not(:disabled)
+  .kadastr-status-reset-icon {
+  transform: rotate(-180deg);
+}
+
+/* Table container + scrollbar */
+.kadastr-status-table-container {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  margin-top: 12px !important;
+  border-radius: 0 !important;
+  overflow-x: auto !important;
+  background: rgba(255, 255, 255, 0.62) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06) !important;
+}
+
+.kadastr-status-table-container::-webkit-scrollbar {
+  width: 8px;
+}
+.kadastr-status-table-container::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.05);
+  border-radius: 4px;
+}
+.kadastr-status-table-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.85) 0%,
+    rgba(245, 158, 11, 0.85) 100%
+  );
+  border-radius: 4px;
+}
+.kadastr-status-table-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.95) 0%,
+    rgba(245, 158, 11, 0.95) 100%
+  );
+}
+
+/* Table */
+.kadastr-status-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  color: #0f172a !important;
+  font-size: 12px !important;
+}
+
+.kadastr-status-table th {
+  font-size: 12px !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  padding: 14px 12px !important;
+  text-align: left !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  font-size: 12px !important;
+  letter-spacing: 0.7px !important;
+  white-space: nowrap !important;
+  border-radius: 0 !important;
+
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1) !important;
+  color: rgba(15, 23, 42, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.kadastr-status-table td {
+  font-size: 11px !important;
+  padding: 12px !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06) !important;
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease !important;
+  color: rgba(15, 23, 42, 0.86) !important;
+  vertical-align: middle !important;
+}
+
+.kadastr-status-table tr:hover {
+  background: rgba(16, 185, 129, 0.06) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06) !important;
+}
+
+.kadastr-status-table tr.selected-row {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border-left: 3px solid #f59e0b !important;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08) !important;
+}
+
+.kadastr-status-table tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* Global ID column */
+.globalid-column,
+.globalid_1-column {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace !important;
+  font-size: 12px !important;
+  color: rgba(16, 185, 129, 0.95) !important;
+  font-weight: 700 !important;
+  max-width: 120px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Status indicator styling */
+.status-indicator-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  position: relative;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+/* Your legacy dot statuses (keep them, but soften) */
+.status-indicator.status-green {
+  background-color: rgba(16, 185, 129, 0.95);
+  border-color: rgba(16, 185, 129, 0.95);
+}
+.status-indicator.status-red {
+  background-color: rgba(220, 38, 38, 0.92);
+  border-color: rgba(220, 38, 38, 0.92);
+}
+.status-indicator.status-grey {
+  background-color: rgba(100, 116, 139, 0.7);
+  border-color: rgba(100, 116, 139, 0.7);
+}
+
+.status-text.status-green-text {
+  color: rgba(16, 185, 129, 0.95);
+  font-weight: 800;
+}
+.status-text.status-red-text {
+  color: rgba(220, 38, 38, 0.92);
+  font-weight: 800;
+}
+.status-text.status-grey-text {
+  color: rgba(100, 116, 139, 0.85);
+  font-weight: 800;
+}
+
+.status-text {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Confirmed / not-confirmed gradients (recolor to theme) */
+.status-indicator.confirmed {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.95) 0%,
+    rgba(245, 158, 11, 0.9) 100%
+  );
+  box-shadow:
+    0 0 0 3px rgba(16, 185, 129, 0.1),
+    0 14px 30px rgba(15, 23, 42, 0.1);
+}
+
+.status-indicator.not-confirmed {
+  background: linear-gradient(
+    135deg,
+    rgba(220, 38, 38, 0.92) 0%,
+    rgba(245, 158, 11, 0.9) 100%
+  );
+  box-shadow:
+    0 0 0 3px rgba(220, 38, 38, 0.1),
+    0 14px 30px rgba(15, 23, 42, 0.1);
+}
+
+.pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.confirmed .pulse-ring {
+  border: 2px solid rgba(16, 185, 129, 0.45);
+}
+.not-confirmed .pulse-ring {
+  border: 2px solid rgba(220, 38, 38, 0.4);
+}
+
+/* Make pulse ring visible for buzulish statuses */
+.status-indicator.status-green .pulse-ring {
+  border: 2px solid rgba(16, 185, 129, 0.45);
+}
+.status-indicator.status-red .pulse-ring {
+  border: 2px solid rgba(220, 38, 38, 0.4);
+}
+.status-indicator.status-grey .pulse-ring {
+  border: 2px solid rgba(100, 116, 139, 0.35);
+}
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3);
+    opacity: 0;
+  }
+}
+
+.confirmed-text {
+  background: linear-gradient(135deg, #10b981 0%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.not-confirmed-text {
+  background: linear-gradient(
+    135deg,
+    rgba(220, 38, 38, 0.95) 0%,
+    rgba(245, 158, 11, 0.95) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Record count */
+.record-count-indicator {
+  padding: 12px 14px !important;
+  background: rgba(255, 255, 255, 0.68) !important;
+  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  border-radius: 14px !important;
+  margin-bottom: 14px !important;
+  font-size: 12px !important;
+  color: rgba(15, 23, 42, 0.75) !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Filter summary */
+.filter-summary {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.filter-summary small {
+  color: rgba(15, 23, 42, 0.55);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Remove old forced dark theme overrides */
+.kadastr-status-card.light-theme {
+  color: #0f172a !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .kadastr-status-content {
+    padding: 16px;
+  }
+
+  .kadastr-status-filter-summary {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .kadastr-status-reset-all-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .kadastr-status-table th,
+  .kadastr-status-table td {
+    padding: 10px 8px;
+  }
+
+  .kadastr-status-table th {
+    font-size: 11px;
+  }
+
+  .kadastr-status-table td {
+    font-size: 10px;
+  }
+
+  .status-indicator {
+    width: 16px;
+    height: 16px;
+  }
+  .status-text {
+    font-size: 12px;
+  }
+  .globalid-column {
+    max-width: 80px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .kadastr-status-content {
+    padding: 12px;
+  }
+
+  .kadastr-status-table th,
+  .kadastr-status-table td {
+    padding: 8px 6px;
+  }
+
+  .kadastr-status-table th {
+    font-size: 11px;
+  }
+
+  .kadastr-status-table td {
+    font-size: 10px;
+  }
+
+  .globalid-column {
+    max-width: 60px;
+    font-size: 10px;
+  }
+  .status-indicator {
+    width: 14px;
+    height: 14px;
+  }
+  .status-text {
+    font-size: 12px;
+  }
+  .status-indicator-container {
+    gap: 8px;
+  }
+
+  .filter-count-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  .kadastr-status-reset-all-button {
+    font-size: 11px;
+    padding: 8px 12px;
+  }
+  .kadastr-status-reset-icon {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* ===== View Mode Toggle (Table / Graff) ===== */
+.view-mode-toggle {
+  display: flex !important;
+  gap: 8px;
+  margin-bottom: 10px;
+  justify-content: flex-end;
+}
+
+.view-button {
+  flex: 0 0 auto;
+  padding: clamp(6px, 1.1vw, 10px) clamp(10px, 1.8vw, 16px);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: clamp(10px, 1.5vw, 14px);
+  cursor: pointer;
+  font-size: clamp(10px, 1.15vw, 13px);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: clamp(0.2px, 0.08vw, 0.5px);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+  background: rgba(255, 255, 255, 0.68);
+  color: rgba(15, 23, 42, 0.75);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.kadastr-table-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  gap: 10px;
+}
+
+.kadastr-table-top-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--graff-text, rgba(15, 23, 42, 0.9));
+  letter-spacing: 0.01em;
+  padding-left: 8px;
+}
+
+.kadastr-table-topbar .kadastr-status-search {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.kadastr-table-topbar .kadastr-search-input {
+  width: 100%;
+  height: 42px;
+}
+
+.view-mode-toggle.compact-toggle {
+  margin-bottom: 0;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.view-button.compact {
+  min-width: 38px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 10px;
+  font-size: 0;
+  letter-spacing: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.view-button-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+.view-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.1);
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.view-button.active {
+  background: linear-gradient(135deg, #10b981 0%, #f59e0b 100%);
+  color: #0b1220;
+  border-color: transparent;
+  box-shadow:
+    0 14px 28px rgba(16, 185, 129, 0.16),
+    0 12px 26px rgba(245, 158, 11, 0.12);
+}
+
+.view-button.active:hover {
+  filter: brightness(1.02);
+  box-shadow:
+    0 16px 32px rgba(16, 185, 129, 0.18),
+    0 14px 28px rgba(245, 158, 11, 0.14);
+}
+
+/* Selected polygon indicator (Graff page) */
+.graff-selected-indicator {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+.graff-selected-indicator .label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(15, 23, 42, 0.85);
+}
+
+.graff-selected-indicator .uniqueid {
+  color: #10b981;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+}
+
+.graff-selected-indicator .clear-btn {
+  background: rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: rgba(15, 23, 42, 0.85);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease;
+}
+
+.graff-selected-indicator .clear-btn:hover {
+  background: rgba(245, 158, 11, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Graff debug / no polygon warning */
+.graff-no-polygon-warning {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 14px;
+  font-size: 11px;
+  color: rgba(220, 38, 38, 0.95);
+  font-weight: 800;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+}
+
+/* ===== Vegetation Graph (Graff) Page - Modern Horizontal Layout ===== */
+.vegetation-graph-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  flex: 1;
+  min-height: 0;
+  overflow: visible;
+  border-radius: 12px;
+  background: #ebebeb;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+/* ===== Right sidebar - vertical index buttons ===== */
+.graff-sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  gap: 0;
+  padding: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 253, 248, 0.98) 0%,
+    rgba(240, 248, 240, 0.92) 100%
+  );
+  border-left: 1px solid rgba(16, 185, 129, 0.1);
+  flex-shrink: 0;
+  width: clamp(52px, 8.5vw, 72px);
+  min-width: clamp(44px, 7vw, 56px);
+}
+
+.graff-sidebar-label {
+  font-size: clamp(6px, 0.75vw, 8px);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: clamp(1px, 0.25vw, 2px);
+  color: rgba(16, 185, 129, 0.45);
+  text-align: center;
+  padding: clamp(4px, 0.7vw, 8px) 0 clamp(1px, 0.2vw, 2px);
+  flex-shrink: 0;
+}
+
+.index-buttons-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+.index-btn-v {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2px, 0.45vw, 4px);
+  flex: 1;
+  min-height: 0;
+  padding: clamp(2px, 0.45vw, 4px) clamp(1px, 0.25vw, 2px);
+  border: none;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.06);
+  border-radius: 0;
+  background: var(--btn-bg, transparent);
+  color: var(--btn-text, #10b981);
+  font-size: clamp(8px, 0.95vw, 10px);
+  font-weight: 800;
+  letter-spacing: clamp(0.2px, 0.12vw, 0.6px);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.index-btn-v:last-child {
+  border-bottom: none;
+}
+
+.index-btn-v::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--btn-color, #10b981);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.index-btn-v:hover::before {
+  opacity: 0.06;
+}
+
+.index-btn-v:hover {
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.03);
+}
+
+.index-btn-v.active {
+  background: var(--btn-bg, #10b981);
+  box-shadow:
+    inset 3px 0 0 var(--btn-color, #10b981),
+    0 2px 12px color-mix(in srgb, var(--btn-color, #10b981) 20%, transparent);
+}
+
+.index-btn-v.active::before {
+  opacity: 0;
+}
+
+.index-btn-v-dot {
+  width: clamp(7px, 0.95vw, 10px);
+  height: clamp(7px, 0.95vw, 10px);
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.index-btn-v.active .index-btn-v-dot {
+  width: clamp(10px, 1.25vw, 14px);
+  height: clamp(10px, 1.25vw, 14px);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.9),
+    0 0 12px var(--btn-color, #10b981);
+  background: #fff !important;
+  border: clamp(1.6px, 0.25vw, 2.5px) solid var(--btn-color, #10b981);
+}
+
+.index-btn-v-label {
+  font-size: inherit;
+  line-height: 1;
+}
+
+/* ===== Left side - chart area ===== */
+.graff-index-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(6px, 1vw, 12px);
+  padding: 0 8px;
+  min-height: 42px;
+}
+
+.graff-index-top-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--graff-text, #0f172a);
+  text-transform: none;
+  letter-spacing: 0.01em;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  padding-left: 4px;
+  padding-right: 4px;
+  white-space: normal;
+  line-height: 1.1;
+  overflow-wrap: break-word;
+}
+
+.graph-svg text {
+  font-size: 12px !important;
+}
+
+.index-buttons-horizontal {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: clamp(4px, 0.6vw, 8px);
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 27px;
+  margin: 1px;
+  padding: 1px 3px;
+}
+
+/* When the widget itself is narrow, allow index buttons to wrap instead of clipping */
+.vegetation-graph-container.is-narrow .index-buttons-horizontal {
+  flex-wrap: wrap;
+  white-space: normal;
+  overflow-x: hidden;
+  row-gap: 6px;
+  padding-bottom: 2px;
+}
+
+.vegetation-graph-container.is-narrow .graff-index-top {
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+.vegetation-graph-container.is-narrow .graff-index-top-right {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.vegetation-graph-container.is-narrow .graff-chart-area {
+  margin-top: 4px;
+}
+
+.vegetation-graph-container.is-narrow .graph-svg-wrap {
+  min-height: 220px;
+}
+
+.graff-index-top-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+  min-width: 0;
+  overflow: visible;
+}
+
+.graff-month-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.graff-month-button {
+  min-width: 34px;
+}
+
+.graff-month-picker-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 3000;
+  background: var(--graff-surface, rgba(7, 26, 43, 0.97));
+  border: 1px solid var(--graff-border, rgba(126, 214, 255, 0.28));
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+}
+
+.graff-month-picker-panel.open-down {
+  top: calc(100% + 6px);
+  bottom: auto;
+}
+
+.graff-month-picker-panel.open-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.graff-month-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 146px;
+  max-height: 126px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.graff-month-option {
+  width: 100%;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--graff-text, #e9f8ff);
+  font-size: 12px;
+  text-align: left;
+  padding: 6px 8px;
+  min-height: 28px;
+  cursor: pointer;
+}
+
+.graff-month-option:hover {
+  background: color-mix(in srgb, var(--graff-text, #e9f8ff) 12%, transparent);
+}
+
+.graff-month-option.active {
+  background: color-mix(in srgb, #3b82f6 55%, transparent);
+  color: #ffffff;
+}
+
+.graff-inline-toggle {
+  margin: 0 !important;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.graff-inline-toggle .view-button.compact {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+}
+
+.index-btn-h {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 999px;
+  height: 24px;
+  padding: 0 7px;
+  margin: 1px 0;
+  background: var(--btn-bg, transparent);
+  color: var(--btn-text, #10b981);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  flex: 0 0 auto;
+  min-height: 24px;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.index-btn-h-label {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.index-btn-h::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--btn-color, #10b981);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.index-btn-h:hover::before {
+  opacity: 0.06;
+}
+
+.index-btn-h:hover {
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.05);
+}
+
+.index-btn-h-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.index-btn-h-label {
+  position: relative;
+  z-index: 1;
+}
+
+.index-btn-h.active {
+  background: var(--btn-bg, #10b981);
+  color: #fff;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.6),
+    0 4px 14px color-mix(in srgb, var(--btn-color, #10b981) 35%, transparent);
+}
+
+.index-btn-h.active::before {
+  opacity: 0;
+}
+
+@media (max-width: 760px) {
+  .graff-index-top {
+    gap: 8px;
+  }
+
+  .graff-index-top-label {
+    font-size: 12px;
+  }
+
+  .graff-index-top-right {
+    gap: 6px;
+  }
+
+  .graff-month-options {
+    min-width: 120px;
+  }
+
+  .index-buttons-horizontal {
+    gap: 4px;
+  }
+}
+
+.graff-chart-area {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.graph-svg-wrap {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.graph-svg-wrap svg.graph-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  border: none !important;
+  border-radius: 12px;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.graff-line-path {
+  animation: graff-line-draw 1.15s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+.graff-line-dot {
+  opacity: 0;
+  animation: graff-dot-in 0.34s ease forwards;
+}
+
+@keyframes graff-line-draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes graff-dot-in {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+    transform-origin: center;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    transform-origin: center;
+  }
+}
+
+/* Remove old fixed-height graph-canvas styles for Graff view */
+.graph-canvas-unified {
+  display: contents;
+}
+
+.graph-canvas {
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Hover tooltip on chart */
+.graph-hover-tooltip {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #fafaf9;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+}
+
+.graph-tooltip-date {
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: rgba(250, 250, 249, 0.95);
+}
+
+.graph-tooltip-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #34d399;
+}
+
+.graph-tooltip-value strong {
+  font-weight: 800;
+}
+
+.graph-legend-vertical text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+}
+
+.graph-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+.graph-stats .stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(15, 23, 42, 0.85);
+}
+
+.graph-stats .stat-label {
+  font-weight: 700;
+  color: rgba(15, 23, 42, 0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.graph-stats .stat-value {
+  font-weight: 900;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #10b981;
+}
+
+/* Graff empty-state hints (no polygon / no data) */
+.graff-hint-text {
+  font-size: 14px;
+  color: rgba(16, 185, 129, 0.95);
+  margin-top: 16px;
+  font-weight: 800;
+}
+
+.graff-hint-list {
+  text-align: left;
+  display: inline-block;
+  margin-top: 8px;
+  color: rgba(15, 23, 42, 0.75);
+  font-size: 13px;
+}
+
+.graff-back-button {
+  margin-top: 20px;
+}
+
+.graff-selected-id-hint {
+  font-size: 12px;
+  color: rgba(15, 23, 42, 0.65);
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+/* ===== Graff Responsive ===== */
+
+/* Medium: narrower sidebar */
+@media (max-width: 640px) {
+  .view-button {
+    padding: 6px 8px;
+    font-size: 10px;
+    letter-spacing: 0.2px;
+    border-radius: 9px;
+  }
+
+  .graff-sidebar {
+    width: 52px;
+    min-width: 44px;
+  }
+  .index-btn-v {
+    font-size: 9px;
+    gap: 3px;
+    padding: 3px 2px;
+  }
+  .index-btn-v-dot {
+    width: 8px;
+    height: 8px;
+  }
+  .index-btn-v.active .index-btn-v-dot {
+    width: 11px;
+    height: 11px;
+  }
+  .graff-chart-area {
+    padding: 0;
+  }
+  .graff-sidebar-label {
+    font-size: 7px;
+    padding: 6px 0 1px;
+  }
+}
+
+/* Very small: collapse sidebar to bottom row */
+@media (max-width: 400px) {
+  .vegetation-graph-container {
+    flex-direction: column;
+    border-radius: 12px;
+  }
+  .graff-sidebar {
+    flex-direction: row;
+    border-left: none;
+    border-top: 1px solid rgba(16, 185, 129, 0.1);
+    width: 100%;
+    min-width: unset;
+    order: 2;
+  }
+  .graff-sidebar-label {
+    display: none;
+  }
+  .index-buttons-vertical {
+    flex-direction: row;
+    gap: 0;
+  }
+  .index-btn-v {
+    flex-direction: row;
+    gap: 4px;
+    font-size: 10px;
+    padding: 6px 4px;
+    border-bottom: none;
+    border-right: 1px solid rgba(16, 185, 129, 0.06);
+  }
+  .index-btn-v:last-child {
+    border-right: none;
+  }
+  .index-btn-v.active {
+    box-shadow:
+      inset 0 -3px 0 var(--btn-color, #10b981),
+      0 -2px 8px color-mix(in srgb, var(--btn-color, #10b981) 15%, transparent);
+  }
+  .graff-chart-area {
+    padding: 0;
+    order: 1;
+  }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.kadastr-status-table tbody tr {
+  animation: slideInFromRight 0.35s ease-out;
+  animation-fill-mode: both;
+}
+
+.kadastr-status-table tbody tr:nth-child(1) {
+  animation-delay: 0.06s;
+}
+.kadastr-status-table tbody tr:nth-child(2) {
+  animation-delay: 0.09s;
+}
+.kadastr-status-table tbody tr:nth-child(3) {
+  animation-delay: 0.12s;
+}
+.kadastr-status-table tbody tr:nth-child(4) {
+  animation-delay: 0.15s;
+}
+.kadastr-status-table tbody tr:nth-child(5) {
+  animation-delay: 0.18s;
+}
+
+/* Accessibility focus */
+.kadastr-status-table tr:focus-within {
+  outline: 2px solid rgba(16, 185, 129, 0.6);
+  outline-offset: -2px;
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+
+.kadastr-status-reset-all-button:focus {
+  outline: 2px solid rgba(245, 158, 11, 0.7);
+  outline-offset: 2px;
+}
+
+/* ===== AgriPie3-like Day/Night Design Parity ===== */
+.kadastr-status-card,
+.kadastr-status-card.dark-theme {
+  --graff-bg: #030a12;
+  --graff-bg-soft: #061420;
+  --graff-surface: rgba(9, 28, 44, 0.74);
+  --graff-th-bg: #081a28;
+  --graff-border: rgba(126, 214, 255, 0.16);
+  --graff-text: #e9f8ff;
+  --graff-muted: #9cc7dd;
+  --graff-shadow: 0 14px 34px rgba(3, 11, 22, 0.48);
+
+  background:
+    radial-gradient(
+      120% 90% at 14% 10%,
+      rgba(83, 226, 255, 0.12),
+      transparent 58%
+    ),
+    radial-gradient(
+      130% 90% at 86% 0%,
+      rgba(33, 137, 255, 0.14),
+      transparent 62%
+    ),
+    linear-gradient(156deg, var(--graff-bg) 0%, var(--graff-bg-soft) 100%) !important;
+  border: 1px solid var(--graff-border) !important;
+  box-shadow:
+    var(--graff-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  color: var(--graff-text) !important;
+}
+
+html.light-theme .kadastr-status-card,
+html[data-theme="light"] .kadastr-status-card,
+body.light-theme .kadastr-status-card,
+.kadastr-status-card.light-theme {
+  --graff-bg: #ffffff;
+  --graff-bg-soft: #ffffff;
+  --graff-surface: #ffffff;
+  --graff-th-bg: #f1f7f8;
+  --graff-border: rgba(61, 87, 85, 0.18);
+  --graff-text: #3d5755;
+  --graff-muted: #3d5755;
+  --graff-shadow: 0 14px 32px rgba(61, 87, 85, 0.14);
+
+  background: #ffffff !important;
+  border-color: var(--graff-border) !important;
+  box-shadow:
+    var(--graff-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+.kadastr-status-content {
+  padding: 8px !important;
+  background: transparent !important;
+  color: var(--graff-text) !important;
+}
+
+.kadastr-table-topbar {
+  border-bottom: none !important;
+  padding-bottom: 8px !important;
+  margin-bottom: 0 !important;
+}
+
+.kadastr-status-table-container {
+  margin-top: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.kadastr-status-table {
+  color: var(--graff-text) !important;
+  table-layout: auto !important;
+}
+
+.kadastr-status-table th {
+  background: var(--graff-th-bg) !important;
+  padding: 10px 12px !important;
+  color: var(--graff-text) !important;
+  border-bottom: 1px solid var(--graff-border) !important;
+  backdrop-filter: none !important;
+  z-index: 30 !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
+  border-radius: 0 !important;
+}
+
+.kadastr-status-table td {
+  padding: 10px 12px !important;
+  color: var(--graff-text) !important;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--graff-border) 50%, transparent) !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+}
+
+.kadastr-status-table tr:hover {
+  background: color-mix(in srgb, var(--graff-text) 8%, transparent) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.kadastr-status-table tr.selected-row {
+  background: color-mix(in srgb, #f59e0b 14%, transparent) !important;
+  border-left: 3px solid #f59e0b !important;
+}
+
+.view-button {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 45, 67, 0.78),
+    rgba(8, 28, 44, 0.78)
+  ) !important;
+  color: #cfefff !important;
+  border: 1px solid rgba(123, 220, 255, 0.28) !important;
+  box-shadow: 0 10px 20px rgba(3, 11, 22, 0.2) !important;
+}
+
+.view-button:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(26, 73, 103, 0.95),
+    rgba(13, 49, 74, 0.95)
+  ) !important;
+  color: #9edfff !important;
+  border-color: rgba(158, 223, 255, 0.88) !important;
+}
+
+.view-button.active {
+  background: linear-gradient(
+    180deg,
+    rgba(23, 88, 122, 0.96),
+    rgba(16, 63, 90, 0.96)
+  ) !important;
+  color: #e9f8ff !important;
+  border-color: rgba(94, 210, 255, 0.92) !important;
+  box-shadow: 0 12px 24px rgba(3, 11, 22, 0.28) !important;
+}
+
+.view-button-icon {
+  color: inherit !important;
+}
+
+.view-button-svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+html.light-theme .view-button,
+html[data-theme="light"] .view-button,
+body.light-theme .view-button,
+.kadastr-status-card.light-theme .view-button {
+  background: #cadede !important;
+  border-color: #cadede !important;
+  color: #425c5a !important;
+  box-shadow: 0 8px 18px rgba(66, 92, 90, 0.12) !important;
+}
+
+html.light-theme .view-button:hover,
+html[data-theme="light"] .view-button:hover,
+body.light-theme .view-button:hover,
+.kadastr-status-card.light-theme .view-button:hover,
+html.light-theme .view-button.active,
+html[data-theme="light"] .view-button.active,
+body.light-theme .view-button.active,
+.kadastr-status-card.light-theme .view-button.active {
+  background: #c79d34 !important;
+  border-color: #c79d34 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 16px rgba(199, 157, 52, 0.22) !important;
+}
+
+.kadastr-search-input {
+  background: color-mix(
+    in srgb,
+    var(--graff-surface) 70%,
+    transparent
+  ) !important;
+  border-color: var(--graff-border) !important;
+  color: var(--graff-text) !important;
+  box-shadow: none !important;
+}
+
+.kadastr-search-input::placeholder {
+  color: var(--graff-muted) !important;
+}
+
+.record-count-indicator,
+.filter-summary,
+.kadastr-status-filter-summary {
+  background: color-mix(
+    in srgb,
+    var(--graff-surface) 72%,
+    transparent
+  ) !important;
+  border-color: var(--graff-border) !important;
+  color: var(--graff-text) !important;
+  box-shadow: none !important;
+}
+
+.vegetation-graph-container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.graff-sidebar {
+  background: color-mix(
+    in srgb,
+    var(--graff-surface) 78%,
+    transparent
+  ) !important;
+  border-left: 1px solid var(--graff-border) !important;
+}
+
+.graff-sidebar-label,
+.graff-index-top-label {
+  color: var(--graff-text) !important;
+  font-weight: 700 !important;
+}
+
+.kadastr-table-top-label {
+  color: var(--graff-text) !important;
+  font-weight: 700 !important;
+}
+
+.graph-svg-wrap svg.graph-svg {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.graph-hover-tooltip {
+  background: rgba(7, 26, 43, 0.94) !important;
+  border-color: var(--graff-border) !important;
+  color: var(--graff-text) !important;
+}
+
+html.light-theme .graph-hover-tooltip,
+html[data-theme="light"] .graph-hover-tooltip,
+body.light-theme .graph-hover-tooltip,
+.kadastr-status-card.light-theme .graph-hover-tooltip {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(61, 87, 85, 0.2) !important;
+  color: #3d5755 !important;
+}
+
+/* Print */
+@media print {
+  .kadastr-status-card {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+  .kadastr-status-card::before {
+    display: none;
+  }
+  .map-connection-indicator {
+    display: none;
+  }
+  .kadastr-status-reset-all-button {
+    display: none;
+  }
+  .kadastr-status-table {
+    color: black !important;
+  }
+  .kadastr-status-table th {
+    background: #f0f0f0 !important;
+    color: black !important;
+  }
+  .kadastr-status-table td {
+    border-bottom: 1px solid #ddd !important;
+  }
+  .status-indicator {
+    border: 2px solid #333;
+    background: white !important;
+  }
+  .status-text {
+    color: black !important;
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+  }
+}

@@ -345,6 +345,8 @@ export default class AgriLocalization extends React.PureComponent<
   private _isMounted = false;
   private _readyFired = false;
   private _homeExtent: __esri.Extent | null = null;
+  // Prevent repeated "home" goTo calls during rapid filter clearing.
+  private _lastHomeGoToAt = 0;
   private _graffSearchWrapRef = React.createRef<HTMLDivElement>();
   private _yilToolbarItemRef = React.createRef<HTMLDivElement>();
   private _languageToolbarItemRef = React.createRef<HTMLDivElement>();
@@ -605,7 +607,7 @@ export default class AgriLocalization extends React.PureComponent<
     forStats = false,
   ): string {
     // Build base without viloyat so we can route per layer.
-    let where = this.buildWhereClause(includeVh, includeTuri, false);
+    let where = this.buildWhereClause(includeVh, includeTuri, false, layer);
     if (!where || where === "1=0") return "1=0";
 
     const effectiveViloyat = this.getEffectiveViloyat();
@@ -629,6 +631,48 @@ export default class AgriLocalization extends React.PureComponent<
     }
 
     return where;
+  }
+
+  private buildYearClauseForLayer(layer: __esri.FeatureLayer): string {
+    const { yil } = this.state;
+    if (!yil) return "1=0";
+
+    const yDigits =
+      String(yil).match(/\b(18|19|20)\d{2}\b/)?.[0] ??
+      String(yil).replace(/[^\d]/g, "");
+    if (!yDigits) {
+      return `yil LIKE '%${this.escapeArcGIS(String(yil))}%'`;
+    }
+
+    const fields: any[] = (layer as any)?.fields || [];
+    const yilField = fields.find(
+      (f) => String(f?.name || "").toLowerCase() === "yil",
+    );
+    const t = String(yilField?.type || "").toLowerCase();
+    const isString = t === "string";
+    const isNumeric =
+      t === "small-integer" || t === "integer" || t === "single" || t === "double";
+
+    if (isNumeric) {
+      const n = Number(yDigits);
+      return Number.isFinite(n) ? `yil = ${n}` : `yil LIKE '${this.escapeArcGIS(yDigits)}%'`;
+    }
+
+    // Default to string semantics (safe for string/unknown types).
+    return isString
+      ? `yil LIKE '${this.escapeArcGIS(yDigits)}%'`
+      : `yil LIKE '${this.escapeArcGIS(yDigits)}%'`;
+  }
+
+  /** Faqat yil tanlash menyusida 2024 tugmasi ko‘rinmasin (boshqa holatlar o‘zgarmaydi). */
+  private isYilHiddenFromPickerMenu(raw: string | null | undefined): boolean {
+    const s = String(raw ?? "").trim();
+    if (!s) return false;
+    const digits =
+      s.match(/\b(18|19|20)\d{2}\b/)?.[0] ??
+      s.replace(/[^\d]/g, "").slice(0, 4) ??
+      "";
+    return digits === "2024";
   }
 
   private _allowClearOnce = false;
@@ -691,6 +735,43 @@ export default class AgriLocalization extends React.PureComponent<
   /* ---------------------- Lifecycle ---------------------- */
   componentDidMount() {
     this._isMounted = true;
+
+    // Silence noisy logs unless yil includes 2024.
+    // This is intentionally global because multiple Agri3 widgets log heavily.
+    try {
+      const w: any = typeof window !== "undefined" ? (window as any) : null;
+      if (w && !w.__AGRI3_CONSOLE_PATCHED__) {
+        w.__AGRI3_CONSOLE_PATCHED__ = true;
+        w.__AGRI3_DEBUG_YEAR__ = w.__AGRI3_DEBUG_YEAR__ || "";
+        w.__AGRI3_CONSOLE_ORIG__ = {
+          log: console.log.bind(console),
+          warn: console.warn.bind(console),
+          error: console.error.bind(console),
+          info: (console.info || console.log).bind(console),
+          debug: (console.debug || console.log).bind(console),
+        };
+
+        const shouldAllow = () => String(w.__AGRI3_DEBUG_YEAR__ || "") === "2024";
+        const wrap =
+          (fnName: "log" | "warn" | "error" | "info" | "debug") =>
+          (...args: any[]) => {
+            if (!shouldAllow()) return;
+            try {
+              w.__AGRI3_CONSOLE_ORIG__[fnName](...args);
+            } catch {
+              /* ignore */
+            }
+          };
+
+        console.log = wrap("log") as any;
+        console.warn = wrap("warn") as any;
+        console.error = wrap("error") as any;
+        console.info = wrap("info") as any;
+        console.debug = wrap("debug") as any;
+      }
+    } catch {
+      /* ignore */
+    }
     this.setState({ connectionStatus: "connecting" });
     this.initializeTheme();
     document.addEventListener("mousedown", this.handleDocumentClick);
@@ -825,6 +906,17 @@ export default class AgriLocalization extends React.PureComponent<
     // Track whether a polygon chart is currently active in Graff
     if (d.polygonMode !== undefined) {
       (updates as any).polygonMode = Boolean(d.polygonMode);
+    }
+
+    // Update global debug year flag for console filtering.
+    try {
+      if (updates.yil !== undefined) {
+        const y = String(updates.yil || "");
+        const w: any = typeof window !== "undefined" ? (window as any) : null;
+        if (w) w.__AGRI3_DEBUG_YEAR__ = /\b2024\b/.test(y) ? "2024" : "";
+      }
+    } catch {
+      /* ignore */
     }
 
     // ✅ IMPORTANT: if user is locked, never accept external viloyat overrides
@@ -1521,11 +1613,14 @@ export default class AgriLocalization extends React.PureComponent<
         return ay - by;
       });
       const latest = sorted.length ? sorted[sorted.length - 1] : "";
+      const prevYil = this.state.yil;
+      const prevStillValid =
+        !!prevYil && sorted.some((v) => String(v) === String(prevYil));
+      const nextYil = prevStillValid ? prevYil : latest;
 
       this.setState({
         yilOptions: sorted,
-        // default select latest year
-        yil: latest || this.state.yil,
+        yil: nextYil,
         loadingFilters: false,
         loading: false,
         error: null,
@@ -1848,6 +1943,12 @@ export default class AgriLocalization extends React.PureComponent<
       },
       async () => {
         try {
+          const w: any = typeof window !== "undefined" ? (window as any) : null;
+          if (w) w.__AGRI3_DEBUG_YEAR__ = /\b2024\b/.test(nextYil) ? "2024" : "";
+        } catch {
+          /* ignore */
+        }
+        try {
           await this.applyMapFiltersOptimized();
           await this.fetchDataWithCurrentState();
           this.broadcastFilterState();
@@ -2160,7 +2261,10 @@ export default class AgriLocalization extends React.PureComponent<
         >
           {yilOptions
             .map((opt) => String(opt).trim())
-            .filter((value) => value.length > 0)
+            .filter(
+              (value) =>
+                value.length > 0 && !this.isYilHiddenFromPickerMenu(value),
+            )
             .map((value) => {
               return (
                 <button
@@ -2404,6 +2508,7 @@ export default class AgriLocalization extends React.PureComponent<
     includeVh = true,
     includeTuri = true,
     includeViloyat = true,
+    layer?: __esri.FeatureLayer,
   ): string {
     const { yil, viloyat, tuman, turi, lockedViloyat } = this.state;
     const clauses: string[] = [];
@@ -2412,15 +2517,20 @@ export default class AgriLocalization extends React.PureComponent<
     if (!yil) return "1=0";
 
     // Year filter
-    const yDigits =
-      String(yil).match(/\b(18|19|20)\d{2}\b/)?.[0] ??
-      String(yil).replace(/[^\d]/g, "");
-
-    clauses.push(
-      yDigits
-        ? `yil LIKE '${yDigits}%'`
-        : `yil LIKE '%${this.escapeArcGIS(String(yil))}%'`,
-    );
+    if (layer) {
+      const yearClause = this.buildYearClauseForLayer(layer);
+      if (!yearClause || yearClause === "1=0") return "1=0";
+      clauses.push(yearClause);
+    } else {
+      const yDigits =
+        String(yil).match(/\b(18|19|20)\d{2}\b/)?.[0] ??
+        String(yil).replace(/[^\d]/g, "");
+      clauses.push(
+        yDigits
+          ? `yil LIKE '${this.escapeArcGIS(yDigits)}%'`
+          : `yil LIKE '%${this.escapeArcGIS(String(yil))}%'`,
+      );
+    }
 
     if (includeViloyat) {
       // Require viloyat (or lockedViloyat) as well before showing any polygons
@@ -3052,13 +3162,10 @@ export default class AgriLocalization extends React.PureComponent<
       return;
     }
 
-    // Do not auto-zoom when nothing is selected yet.
-    const effectiveViloyat = this.getEffectiveViloyat();
-    if (!effectiveViloyat) {
-      this._prevDefinitionExpression = expressionDigest;
-      this._allowClearOnce = false;
-      return;
-    }
+    const hadActiveBefore =
+      String(prevExpr || "")
+        .split(" || ")
+        .some((w) => (w || "1=0") !== "1=0");
 
     try {
       // Zoom to the currently active filtered layer(s), not only the first layer.
@@ -3087,14 +3194,21 @@ export default class AgriLocalization extends React.PureComponent<
         if (!isEmptyExtent(mergedExtent)) {
           await activeMapView.view.goTo(mergedExtent.expand(1.2));
         }
-      } else if (this._allowClearOnce) {
+      } else if (this._allowClearOnce || hadActiveBefore) {
+        const now = Date.now();
+        // If multiple state updates clear filters in quick succession, avoid stacking goTo(home).
+        if (now - this._lastHomeGoToAt < 900) {
+          return;
+        }
         const home =
           this._homeExtent ||
           primaryLayer.fullExtent ||
           (await primaryLayer.queryExtent(primaryLayer.createQuery())).extent;
 
         if (home && !home.empty) {
-          await activeMapView.view.goTo(home.expand(1.2));
+          this._lastHomeGoToAt = now;
+          // Return to the initial open extent (no extra expand), so it doesn't zoom out "too far".
+          await activeMapView.view.goTo(home);
         }
       }
     } catch (e) {
