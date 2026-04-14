@@ -1094,6 +1094,7 @@ body.light-theme .regional-stats-card,
   border: none !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
+  min-height: 0 !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   margin-top: 0 !important;
@@ -1114,6 +1115,15 @@ body.light-theme .regional-stats-card,
   box-shadow: none !important;
 }
 
+.regional-stats-chart-scroll {
+  width: 100%;
+  min-height: 100%;
+  margin-top: 0 !important;
+  overflow: visible !important;
+  padding-left: 2px !important;
+  flex-shrink: 0;
+}
+
 .regional-stats-chart-container::-webkit-scrollbar {
   width: 4px;
 }
@@ -1125,14 +1135,6 @@ body.light-theme .regional-stats-card,
 .regional-stats-chart-container::-webkit-scrollbar-thumb {
   background: rgba(158, 223, 255, 0.78);
   border-radius: 999px;
-}
-
-.regional-stats-chart-scroll {
-  width: 100%;
-  min-height: 100%;
-  margin-top: 0 !important;
-  overflow: visible !important;
-  padding-left: 2px !important;
 }
 
 .regional-stats-card .regional-tooltip {

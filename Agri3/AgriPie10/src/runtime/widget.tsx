@@ -141,6 +141,54 @@ export default class AgriPie extends React.PureComponent<
   MAX_CONNECTION_ATTEMPTS = 3;
   CONNECTION_TIMEOUT_MS = 15000;
 
+  private normalizeLanguage = (raw?: string | null): AgriPieState["language"] => {
+    const v = String(raw || "")
+      .trim()
+      .toLowerCase();
+
+    if (v === "ru" || v === "rus" || v === "russian") return "ru";
+    if (
+      v === "uz_cyr" ||
+      v === "uz-cyr" ||
+      v === "uz_cyrl" ||
+      v === "uz-cyrl" ||
+      v === "uz_cyrillic" ||
+      v === "uz-cyrillic"
+    ) {
+      return "uz_cyr";
+    }
+    if (
+      v === "uz_lat" ||
+      v === "uz-lat" ||
+      v === "uz_latin" ||
+      v === "uz-latin" ||
+      v === "uz"
+    ) {
+      return "uz_lat";
+    }
+
+    return "ru";
+  };
+
+  private resolveInitialLanguage = (): AgriPieState["language"] => {
+    try {
+      const fromUrl =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("lang")
+          : null;
+      const fromStorage =
+        typeof window !== "undefined"
+          ? localStorage.getItem("app_lang") ||
+            localStorage.getItem("evapo_app_lang") ||
+            localStorage.getItem("agro_lang")
+          : null;
+
+      return this.normalizeLanguage(fromUrl || fromStorage);
+    } catch {
+      return "ru";
+    }
+  };
+
   private static readonly APOSTROPHE_VARIANTS = ["'", "'", "'", "ʻ", "ʼ", "`"];
   private _latestKey = "";
   private _didInitOnce = false;
@@ -159,6 +207,17 @@ export default class AgriPie extends React.PureComponent<
 
   constructor(props: AgriPieProps) {
     super(props);
+
+    const initialLanguage = this.resolveInitialLanguage();
+
+    let initialIsDarkTheme = true;
+    try {
+      const savedTheme = localStorage.getItem("app_theme");
+      initialIsDarkTheme =
+        savedTheme !== null ? savedTheme === "dark" : true;
+    } catch {
+      initialIsDarkTheme = true;
+    }
 
     this.state = {
       loading: false,
@@ -194,15 +253,20 @@ export default class AgriPie extends React.PureComponent<
       activeFeatureLayer: undefined,
 
       debugInfo: "Widget initializing",
-      language: "uz_cyr",
-      isDarkTheme: false,
+      language: initialLanguage,
+      isDarkTheme: initialIsDarkTheme,
     };
   }
 
   private initializeTheme = () => {
-    const savedTheme = localStorage.getItem("app_theme");
-    const isDarkTheme = savedTheme === "dark";
-    this.setState({ isDarkTheme });
+    try {
+      const savedTheme = localStorage.getItem("app_theme");
+      const isDarkTheme =
+        savedTheme !== null ? savedTheme === "dark" : true;
+      this.setState({ isDarkTheme });
+    } catch {
+      this.setState({ isDarkTheme: true });
+    }
   };
 
   private handleThemeToggled = (event: Event) => {
@@ -217,8 +281,23 @@ export default class AgriPie extends React.PureComponent<
       return;
     }
 
-    const savedTheme = localStorage.getItem("app_theme");
-    this.setState({ isDarkTheme: savedTheme === "dark" });
+    try {
+      const savedTheme = localStorage.getItem("app_theme");
+      const isDarkTheme =
+        savedTheme !== null ? savedTheme === "dark" : true;
+      this.setState({ isDarkTheme });
+    } catch {
+      this.setState({ isDarkTheme: true });
+    }
+  };
+
+  private handleLanguageChange = (event: Event) => {
+    if (!this._isMounted) return;
+    const d: any = (event as CustomEvent)?.detail || {};
+    const raw = d.lang ?? d.language ?? d.code;
+    const next = this.normalizeLanguage(raw);
+    if (next === this.state.language) return;
+    this.setState({ language: next });
   };
 
   /* ---------- DS helpers ---------- */
@@ -769,7 +848,7 @@ export default class AgriPie extends React.PureComponent<
     if (nextVh && !hasField("barCategoryValue")) nextBarValue = null;
 
     const nextLanguage: "uz_cyr" | "uz_lat" | "ru" = hasField("language")
-      ? (incoming.language as any) || this.state.language || "uz_cyr"
+      ? (incoming.language as any) || this.state.language || "ru"
       : this.state.language;
 
     const effectiveViloyat = this.normalizeName(nextViloyatRaw || "");
@@ -868,6 +947,10 @@ export default class AgriPie extends React.PureComponent<
     document.addEventListener(
       "themeToggled",
       this.handleThemeToggled as EventListener,
+    );
+    document.addEventListener(
+      "languageChanged",
+      this.handleLanguageChange as EventListener,
     );
 
     window.addEventListener("resize", this.handleResize);
@@ -1079,6 +1162,14 @@ export default class AgriPie extends React.PureComponent<
     document.removeEventListener(
       "themeToggled",
       this.handleThemeToggled as EventListener,
+    );
+    document.removeEventListener(
+      "languageChanged",
+      this.handleLanguageChange as EventListener,
+    );
+    document.removeEventListener(
+      "masterFilterChanged",
+      this.handleMasterFilterChange as EventListener,
     );
 
     // ✅ FIX: now it actually exists
@@ -1691,7 +1782,12 @@ export default class AgriPie extends React.PureComponent<
 
     const themeClass = isDarkTheme ? "dark-theme" : "light-theme";
 
-    const titleText = "Ekin turi";
+    const titleText =
+      language === "ru"
+        ? "Тип культуры"
+        : language === "uz_lat"
+          ? "Ekin turi"
+          : "Экин тури";
 
     const noDataTitle =
       language === "ru"

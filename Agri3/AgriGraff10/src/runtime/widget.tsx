@@ -12,6 +12,7 @@ import {
   QueriableDataSource,
   React,
 } from "jimu-core";
+import ReactDOM from "react-dom";
 import debounce from "lodash/debounce";
 import throttle from "lodash/throttle";
 import "./AgriGraff.css";
@@ -115,6 +116,44 @@ const VH_TO_NDVI_STATUS: Record<string, string> = {
 };
 
 type AgriGraffDisplayLanguage = "uz_cyr" | "uz_lat" | "ru";
+
+function resolveInitialAgri3Language(): AgriGraffDisplayLanguage {
+  try {
+    const raw =
+      localStorage.getItem("evapo_app_lang") ||
+      localStorage.getItem("app_lang") ||
+      localStorage.getItem("agro_lang") ||
+      (typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("lang")
+        : null) ||
+      "";
+    const v = String(raw).trim().toLowerCase();
+    if (v === "ru" || v === "rus" || v === "russian") return "ru";
+    if (
+      v === "uz_lat" ||
+      v === "uz-lat" ||
+      v === "uz_latin" ||
+      v === "uz-latin" ||
+      v === "uz"
+    ) {
+      return "uz_lat";
+    }
+    if (
+      v === "uz_cyr" ||
+      v === "uz-cyr" ||
+      v === "uz_cyrl" ||
+      v === "uz-cyrl" ||
+      v === "uz_cyrillic" ||
+      v === "uz-cyrillic" ||
+      v === "cyrillic"
+    ) {
+      return "uz_cyr";
+    }
+    return "ru";
+  } catch {
+    return "ru";
+  }
+}
 
 const UZ_CYRILLIC_TO_LATIN: Record<string, string> = {
   А: "A",
@@ -425,7 +464,14 @@ interface AgriGraffWidgetState {
   selectedIndices: Array<"ndvi" | "savi" | "rvi" | "ci" | "evi">;
   chartTooltip: {
     indexKey: "ndvi" | "savi" | "rvi" | "ci" | "evi";
-    point: { date: Date; value: number; min?: number; max?: number };
+    point: {
+      date: Date;
+      value: number;
+      min?: number;
+      max?: number;
+      /** Must match xScale(date, sourceIndex) so crosshair aligns with rendered dots */
+      sourceIndex?: number;
+    };
   } | null;
   selectedNdviDate?: string | null;
   selectedChartIndexKey?: "ndvi" | "savi" | "rvi" | "ci" | "evi" | null;
@@ -519,12 +565,24 @@ export default class AgriGraffWidget extends React.PureComponent<
   constructor(props) {
     super(props);
 
-    const initialIsDarkTheme =
-      (typeof window !== "undefined" &&
-        window.localStorage?.getItem("app_theme") === "dark") ||
-      (typeof document !== "undefined" &&
-        (document.documentElement.getAttribute("data-theme") === "dark" ||
-          document.body?.classList?.contains("dark-theme")));
+    let initialIsDarkTheme = true;
+    try {
+      const saved =
+        typeof window !== "undefined"
+          ? window.localStorage?.getItem("app_theme")
+          : null;
+      const domTheme =
+        typeof document !== "undefined"
+          ? document.documentElement.getAttribute("data-theme")
+          : null;
+      if (saved !== null && saved !== undefined) {
+        initialIsDarkTheme = saved === "dark";
+      } else if (domTheme === "light" || domTheme === "dark") {
+        initialIsDarkTheme = domTheme === "dark";
+      }
+    } catch {
+      initialIsDarkTheme = true;
+    }
 
     this.state = {
       records: [],
@@ -590,7 +648,7 @@ export default class AgriGraffWidget extends React.PureComponent<
       monthPickerPlacement: "down",
       graphViewportWidth: 860,
       graphViewportHeight: 360,
-      language: "uz_cyr",
+      language: resolveInitialAgri3Language(),
     };
 
     this.tableContainerRef = React.createRef();
@@ -751,7 +809,7 @@ export default class AgriGraffWidget extends React.PureComponent<
 
     const f = d.filters || {};
     const nextLanguage: "uz_cyr" | "uz_lat" | "ru" =
-      (f.language as any) || this.state.language || "uz_cyr";
+      (f.language as any) || this.state.language || "ru";
 
     // AgriFilter may provide the active "locked viloyat" via scope.
     // In that case, f.viloyat can be empty, so we still need to route queries to the locked layer.
@@ -874,6 +932,7 @@ export default class AgriGraffWidget extends React.PureComponent<
                 detail: {
                   source: "AgriGraffWidget",
                   polygonMode: false,
+                  uniqueid: "",
                   timestamp: Date.now(),
                 },
                 bubbles: true,
@@ -2737,6 +2796,10 @@ export default class AgriGraffWidget extends React.PureComponent<
       "themeToggled",
       this.handleThemeChange as EventListener,
     );
+    document.addEventListener(
+      "languageChanged",
+      this.handleAppLanguageChanged as EventListener,
+    );
 
     if (this.tableContainerRef.current) {
       this.tableContainerRef.current.addEventListener(
@@ -2968,6 +3031,15 @@ export default class AgriGraffWidget extends React.PureComponent<
     this.detachMapClick();
 
     document.removeEventListener(
+      "themeToggled",
+      this.handleThemeChange as EventListener,
+    );
+    document.removeEventListener(
+      "languageChanged",
+      this.handleAppLanguageChanged as EventListener,
+    );
+
+    document.removeEventListener(
       "masterFilterChanged",
       this.handleMasterFilterChanged as EventListener,
     );
@@ -3047,8 +3119,49 @@ export default class AgriGraffWidget extends React.PureComponent<
         ? document.documentElement.getAttribute("data-theme")
         : null;
 
-    const isDarkTheme = savedTheme === "dark" || domTheme === "dark";
+    let isDarkTheme = true;
+    if (savedTheme !== null && savedTheme !== undefined) {
+      isDarkTheme = savedTheme === "dark";
+    } else if (domTheme === "light" || domTheme === "dark") {
+      isDarkTheme = domTheme === "dark";
+    }
+
     this.setState({ isDarkTheme });
+  };
+
+  private handleAppLanguageChanged = (event: Event): void => {
+    if (!this._isMounted) return;
+    const d: any = (event as CustomEvent)?.detail || {};
+    const raw = d.lang ?? d.language ?? d.code;
+    const v = String(raw ?? "")
+      .trim()
+      .toLowerCase();
+    if (!v) return;
+
+    let next: AgriGraffDisplayLanguage = "ru";
+    if (v === "ru" || v === "rus" || v === "russian") next = "ru";
+    else if (
+      v === "uz_lat" ||
+      v === "uz-lat" ||
+      v === "uz_latin" ||
+      v === "uz-latin" ||
+      v === "uz"
+    )
+      next = "uz_lat";
+    else if (
+      v === "uz_cyr" ||
+      v === "uz-cyr" ||
+      v === "uz_cyrl" ||
+      v === "uz-cyrl" ||
+      v === "uz_cyrillic" ||
+      v === "uz-cyrillic" ||
+      v === "cyrillic"
+    )
+      next = "uz_cyr";
+    else return;
+
+    if (next === this.state.language) return;
+    this.setState({ language: next });
   };
 
   handleThemeChange = (event): void => {
@@ -3449,6 +3562,14 @@ export default class AgriGraffWidget extends React.PureComponent<
           vegetationError: null,
         },
         () => {
+          // Restore normal regional filter when row selection is cleared.
+          try {
+            const baseWhere = this.buildWhereClause();
+            (featureLayer as any).definitionExpression = baseWhere || "1=0";
+            (this.state.dataSource as any)?.setDefinitionExpression?.(
+              baseWhere || "1=0",
+            );
+          } catch {}
           try {
             document.dispatchEvent(
               new CustomEvent("widgetSelectionChanged", {
@@ -3561,12 +3682,30 @@ export default class AgriGraffWidget extends React.PureComponent<
             this.state.selecteduniqueid,
           );
 
+          // Keep only the selected row polygon visible on the map layer.
+          try {
+            const baseWhere = this.buildWhereClause();
+            const uniqueClause = this.builduniqueidWhere(
+              String(uniqueid || ""),
+              "uniqueid",
+            );
+            const selectedWhere =
+              baseWhere && baseWhere !== "1=0"
+                ? `(${baseWhere}) AND ${uniqueClause}`
+                : uniqueClause;
+            (featureLayer as any).definitionExpression = selectedWhere || "1=0";
+            (this.state.dataSource as any)?.setDefinitionExpression?.(
+              selectedWhere || "1=0",
+            );
+          } catch {}
+
           try {
             document.dispatchEvent(
               new CustomEvent("widgetSelectionChanged", {
                 detail: {
                   source: "AgriGraffWidget",
                   polygonMode: true,
+                  uniqueid: uniqueid || "",
                   timestamp: Date.now(),
                 },
                 bubbles: true,
@@ -4750,7 +4889,13 @@ export default class AgriGraffWidget extends React.PureComponent<
         | {
             distance: number;
             indexKey: "ndvi" | "savi" | "rvi" | "ci" | "evi";
-            point: { date: Date; value: number; min?: number; max?: number };
+            point: {
+              date: Date;
+              value: number;
+              min?: number;
+              max?: number;
+              sourceIndex?: number;
+            };
           }
         | null = null;
 
@@ -4768,6 +4913,7 @@ export default class AgriGraffWidget extends React.PureComponent<
                 value: p.value,
                 min: p.min,
                 max: p.max,
+                sourceIndex: p.sourceIndex,
               },
             };
           }
@@ -4779,7 +4925,13 @@ export default class AgriGraffWidget extends React.PureComponent<
 
     const setChartTooltipForIndex = (
       indexKey: "ndvi" | "savi" | "rvi" | "ci" | "evi",
-      point: { date: Date; value: number; min?: number; max?: number },
+      point: {
+        date: Date;
+        value: number;
+        min?: number;
+        max?: number;
+        sourceIndex?: number;
+      },
     ) => {
       this.setState({
         chartTooltip: {
@@ -4789,6 +4941,9 @@ export default class AgriGraffWidget extends React.PureComponent<
             value: point.value,
             min: point.min,
             max: point.max,
+            ...(point.sourceIndex != null && point.sourceIndex >= 0
+              ? { sourceIndex: point.sourceIndex }
+              : {}),
           },
         },
       });
@@ -4814,7 +4969,13 @@ export default class AgriGraffWidget extends React.PureComponent<
 
     const handlePointSelection = (
       indexKey: "ndvi" | "savi" | "rvi" | "ci" | "evi",
-      point: { date: Date; value: number; min?: number; max?: number },
+      point: {
+        date: Date;
+        value: number;
+        min?: number;
+        max?: number;
+        sourceIndex?: number;
+      },
     ) => {
       if (!regionalInteraction) return;
 
@@ -4854,6 +5015,9 @@ export default class AgriGraffWidget extends React.PureComponent<
             value: point.value,
             min: point.min,
             max: point.max,
+            ...(point.sourceIndex != null && point.sourceIndex >= 0
+              ? { sourceIndex: point.sourceIndex }
+              : {}),
           },
         },
       });
@@ -4892,6 +5056,46 @@ export default class AgriGraffWidget extends React.PureComponent<
       if (!point) return;
       handlePointSelection(primaryIndex, point);
     };
+
+    const floatingTooltip = chartTooltip
+      ? (() => {
+          const pt = chartTooltip.point;
+          const lineX = xScale(pt.date, pt.sourceIndex);
+          const boxW = 188;
+          const pad = 12;
+          const lineH = 16;
+          const headerH = 22;
+          const boxH = headerH + 4 + lineH * 3 + pad;
+          const wrapRect = this.graphSvgWrapRef.current?.getBoundingClientRect();
+          if (!wrapRect) return null;
+
+          let left = wrapRect.left + lineX - boxW / 2;
+          left = Math.max(8, Math.min(left, window.innerWidth - boxW - 8));
+          const top = Math.max(8, wrapRect.top - boxH - 10);
+
+          const minStr = pt.min != null ? pt.min.toFixed(4) : "—";
+          const maxStr = pt.max != null ? pt.max.toFixed(4) : "—";
+          const valStr = pt.value.toFixed(4);
+          const dateLocale = language === "ru" ? "ru-RU" : "en-GB";
+          const dateStr = pt.date.toLocaleDateString(dateLocale, {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+          const indicatorColor = indexColorMap[chartTooltip.indexKey] || "#fbbf24";
+
+          return {
+            left,
+            top,
+            minStr,
+            maxStr,
+            valStr,
+            dateStr,
+            indicatorColor,
+            key: chartTooltip.indexKey,
+          };
+        })()
+      : null;
 
     return (
       <div
@@ -5245,6 +5449,7 @@ export default class AgriGraffWidget extends React.PureComponent<
                               value: d.value,
                               min: d.min,
                               max: d.max,
+                              sourceIndex: d.sourceIndex,
                             });
                           }}
                         >
@@ -5298,7 +5503,7 @@ export default class AgriGraffWidget extends React.PureComponent<
                 (() => {
                   const tooltipIndexKey = chartTooltip.indexKey;
                   const pt = chartTooltip.point;
-                  const lineX = xScale(pt.date);
+                  const lineX = xScale(pt.date, pt.sourceIndex);
                   const yVal = yScale(pt.value);
                   const yMin = pt.min != null ? yScale(pt.min) : null;
                   const yMax = pt.max != null ? yScale(pt.max) : null;
@@ -5307,9 +5512,13 @@ export default class AgriGraffWidget extends React.PureComponent<
                   const boxW = 188;
                   const headerH = 22;
                   const boxH = headerH + 4 + lineH * 3 + pad;
-                  const showLabelLeft = lineX > padding.left + chartWidth / 2;
-                  const boxX = showLabelLeft ? lineX - boxW - 10 : lineX + 10;
-                  const boxY = padding.top - 8;
+                  // Center tooltip on the hovered point’s X; clamp inside plot area
+                  let boxX = lineX - boxW / 2;
+                  const minBoxX = padding.left + 4;
+                  const maxBoxX = padding.left + chartWidth - boxW - 4;
+                  boxX = Math.max(minBoxX, Math.min(boxX, maxBoxX));
+                  // Inline SVG tooltip hidden; using fixed floating tooltip above widget.
+                  const boxY = -10000;
                   const lineHt = 12;
                   const minStr = pt.min != null ? pt.min.toFixed(4) : "—";
                   const maxStr = pt.max != null ? pt.max.toFixed(4) : "—";
@@ -5486,6 +5695,70 @@ export default class AgriGraffWidget extends React.PureComponent<
                   );
                 })()}
             </svg>
+            {floatingTooltip &&
+              ReactDOM.createPortal(
+                <div
+                  style={{
+                    position: "fixed",
+                    left: `${floatingTooltip.left}px`,
+                    top: `${floatingTooltip.top}px`,
+                    width: "188px",
+                    zIndex: 2147483000,
+                    pointerEvents: "none",
+                    borderRadius: "10px",
+                    background: tooltipBg,
+                    border: `1.5px solid ${tooltipBorder}`,
+                    boxShadow: "0 14px 32px rgba(15, 23, 42, 0.25)",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "22px",
+                      background: tooltipHeaderBg,
+                      borderBottom: `1px solid ${tooltipBorder}`,
+                      padding: "4px 12px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      fontSize: "10px",
+                      color: themeText,
+                    }}
+                  >
+                    <span>{language === "ru" ? "Дата" : language === "uz_lat" ? "Sana" : "Сана"}</span>
+                    <span>{floatingTooltip.dateStr}</span>
+                  </div>
+                  <div style={{ padding: "6px 12px 8px", fontSize: "10px", lineHeight: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: themeText }}>
+                      <span>{language === "ru" ? "Макс" : language === "uz_lat" ? "Max" : "Макс"}</span>
+                      <span style={{ color: "#059669" }}>{floatingTooltip.maxStr}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: themeText }}>
+                      <span>
+                        {floatingTooltip.key.toUpperCase()}{" "}
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            background: floatingTooltip.indicatorColor,
+                            marginLeft: 4,
+                          }}
+                        />
+                      </span>
+                      <span style={{ color: floatingTooltip.indicatorColor }}>
+                        {floatingTooltip.valStr}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: themeText }}>
+                      <span>{language === "ru" ? "Мин" : language === "uz_lat" ? "Min" : "Мин"}</span>
+                      <span style={{ color: "#dc2626" }}>{floatingTooltip.minStr}</span>
+                    </div>
+                  </div>
+                </div>,
+                document.body,
+              )}
           </div>
         </div>
       </div>

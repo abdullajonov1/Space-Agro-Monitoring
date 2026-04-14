@@ -77,6 +77,8 @@ export default class AgriBar extends React.PureComponent<
     if (
       v === "uz_cyr" ||
       v === "uz-cyr" ||
+      v === "uz_cyrl" ||
+      v === "uz-cyrl" ||
       v === "uz_cyrillic" ||
       v === "uz-cyrillic"
     ) {
@@ -92,7 +94,7 @@ export default class AgriBar extends React.PureComponent<
       return "uz_lat";
     }
 
-    return "uz_lat";
+    return "ru";
   };
 
   private resolveInitialLanguage = (): "uz_cyr" | "uz_lat" | "ru" => {
@@ -110,7 +112,7 @@ export default class AgriBar extends React.PureComponent<
 
       return this.normalizeLanguage(fromUrl || fromStorage);
     } catch (_e) {
-      return "uz_lat";
+      return "ru";
     }
   };
 
@@ -189,7 +191,7 @@ export default class AgriBar extends React.PureComponent<
     const nextTur = d.filters.turi || "";
     const nextVh = d.filters.vh || "";
     const nextLanguage: "uz_cyr" | "uz_lat" | "ru" =
-      (d.filters.language as any) || this.state.language || "uz_cyr";
+      (d.filters.language as any) || this.state.language || "ru";
 
     const vhBarData = d.vhBarData ?? null;
     const nextVhData = {

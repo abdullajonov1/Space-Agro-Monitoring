@@ -335,6 +335,8 @@ export default class AgriRegion extends React.PureComponent<
     if (
       v === "uz_cyr" ||
       v === "uz-cyr" ||
+      v === "uz_cyrl" ||
+      v === "uz-cyrl" ||
       v === "uz_cyrillic" ||
       v === "uz-cyrillic"
     ) {
@@ -350,7 +352,7 @@ export default class AgriRegion extends React.PureComponent<
       return "uz_lat";
     }
 
-    return "uz_lat";
+    return "ru";
   };
 
   private resolveInitialLanguage = (): "uz_cyr" | "uz_lat" | "ru" => {
@@ -368,7 +370,7 @@ export default class AgriRegion extends React.PureComponent<
 
       return this.normalizeLanguage(fromUrl || fromStorage);
     } catch (_e) {
-      return "uz_lat";
+      return "ru";
     }
   };
 
@@ -397,7 +399,8 @@ export default class AgriRegion extends React.PureComponent<
       selectedViloyatForDrillDown: null,
       selectedRegion: null,
 
-      displayCount: 10,
+      // 0 means "show all" so overflow is handled by scroll.
+      displayCount: 0,
       sortMode: "alpha",
       isDarkTheme: this.detectIsDarkTheme(),
       widgetSize: "lg",
@@ -1345,22 +1348,9 @@ export default class AgriRegion extends React.PureComponent<
 
     // Dynamic Y-axis width based on region name lengths
     const yAxisWidth = this.calculateDynamicYAxisWidth();
-    const chartBarSlot =
-      widgetSize === "xs"
-        ? 34
-        : widgetSize === "sm"
-          ? 38
-          : widgetSize === "md"
-            ? 42
-            : 46;
-    const chartBarSize =
-      widgetSize === "xs"
-        ? 28
-        : widgetSize === "sm"
-          ? 32
-          : widgetSize === "md"
-            ? 36
-            : 40;
+    // Keep bar height and spacing stable across widget sizes.
+    const chartBarSlot = 42;
+    const chartBarSize = 36;
 
     const currentData =
       currentView === "viloyat"
@@ -1388,7 +1378,7 @@ export default class AgriRegion extends React.PureComponent<
               }),
             );
 
-    const limited = sorted.slice(0, displayCount);
+    const limited = displayCount > 0 ? sorted.slice(0, displayCount) : sorted;
 
     const chartData = limited.map((r, i) => ({
       ...r, // keep original `name` for selection notifications
@@ -1396,10 +1386,7 @@ export default class AgriRegion extends React.PureComponent<
       displayName: (r as any).displayName,
     }));
 
-    const chartScrollableHeight = Math.max(
-      widgetSize === "xs" ? 220 : 260,
-      chartData.length * chartBarSlot + 28,
-    );
+    const chartScrollableHeight = chartData.length * chartBarSlot + 28;
 
     const breadcrumb =
       currentView === "viloyat"
@@ -1423,6 +1410,8 @@ export default class AgriRegion extends React.PureComponent<
           }`;
 
     const unitLabel = language === "uz_lat" ? "ga" : "га";
+    const allCountLabel =
+      language === "ru" ? "Все" : language === "uz_lat" ? "Barchasi" : "Барчаси";
 
     const selectYearTitle =
       language === "ru"
@@ -1552,6 +1541,7 @@ export default class AgriRegion extends React.PureComponent<
                   this.setState({ displayCount: parseInt(e.target.value, 10) })
                 }
               >
+                <option value={0}>{allCountLabel}</option>
                 <option value={5}>5</option>
                 <option value={10}>10</option>
                 <option value={15}>15</option>
@@ -1644,12 +1634,12 @@ export default class AgriRegion extends React.PureComponent<
                     <Tooltip
                       content={this.renderCustomTooltip}
                       offset={14}
-                      reverseDirection={{ x: false, y: true }}
-                      allowEscapeViewBox={{ x: true, y: false }}
+                      reverseDirection={{ x: true, y: true }}
+                      allowEscapeViewBox={{ x: false, y: false }}
                       wrapperStyle={{
-                        zIndex: 80,
+                        zIndex: 220,
                         pointerEvents: "none",
-                        maxWidth: "calc(100% - 12px)",
+                        maxWidth: "min(260px, calc(100% - 12px))",
                       }}
                     />
                     <Bar

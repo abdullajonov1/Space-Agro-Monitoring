@@ -754,9 +754,10 @@
 .land-category-title {
   font-size: 12px !important;
   font-weight: 800 !important;
-  color: #111111 !important;
+  /* Inherit --pie-text from .land-category-card (day/night block below) */
+  color: inherit !important;
   background: none !important;
-  -webkit-text-fill-color: initial !important;
+  -webkit-text-fill-color: currentColor !important;
   letter-spacing: -0.01em !important;
   line-height: 1.1 !important;
   max-width: min(70vw, 560px) !important;

@@ -153,7 +153,9 @@ export function normalizeLang(input: any): LangCode {
     raw === "uzcyrl" ||
     raw === "uz_cyrillic" ||
     raw === "uz-cyrillic" ||
-    raw === "cyrillic"
+    raw === "cyrillic" ||
+    raw === "uz_cyr" ||
+    raw === "uz-cyr"
   ) {
     return "uz_cyrl";
   }
@@ -175,7 +177,7 @@ export function getInitialLang(): LangCode {
   return normalizeLang(
     localStorage.getItem("evapo_app_lang") ||
       localStorage.getItem("app_lang") ||
-      "uz_lat",
+      "ru",
   );
 }
 

@@ -156,6 +156,45 @@ interface FilterState {
   language: "uz_cyr" | "uz_lat" | "ru";
 }
 
+/** Align with AgriBar/AgriRegion/AgriPopup localStorage; default first-run language = Russian */
+function resolveStoredAgriLanguage(): FilterState["language"] {
+  try {
+    const raw =
+      localStorage.getItem("evapo_app_lang") ||
+      localStorage.getItem("app_lang") ||
+      localStorage.getItem("agro_lang") ||
+      (typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("lang")
+        : null) ||
+      "";
+    const v = String(raw).trim().toLowerCase();
+    if (v === "ru" || v === "rus" || v === "russian") return "ru";
+    if (
+      v === "uz_lat" ||
+      v === "uz-lat" ||
+      v === "uzlatin" ||
+      v === "uz-latin" ||
+      v === "uz"
+    ) {
+      return "uz_lat";
+    }
+    if (
+      v === "uz_cyr" ||
+      v === "uz-cyr" ||
+      v === "uz_cyrl" ||
+      v === "uz-cyrl" ||
+      v === "uz_cyrillic" ||
+      v === "uz-cyrillic" ||
+      v === "cyrillic"
+    ) {
+      return "uz_cyr";
+    }
+    return "ru";
+  } catch {
+    return "ru";
+  }
+}
+
 interface GeoWidgetState extends FilterState {
   records: RecordData[];
   loading: boolean;
@@ -174,6 +213,8 @@ interface GeoWidgetState extends FilterState {
 
   /** True when a specific polygon graph is active (selected in Graff) */
   polygonMode?: boolean;
+  /** Selected polygon id from AgriGraff row; used to keep only one polygon visible. */
+  selectedGraffUniqueid?: string;
 
   featureLayer?: __esri.FeatureLayer;
   /** All resolved feature layers (up to numberOfDataSources) */
@@ -707,7 +748,7 @@ export default class AgriLocalization extends React.PureComponent<
       turi: "",
       vh: "",
       ndviDate: "",
-      language: "uz_lat",
+      language: resolveStoredAgriLanguage(),
 
       userName: null,
       userGroupIds: [],
@@ -724,6 +765,7 @@ export default class AgriLocalization extends React.PureComponent<
       connectionStatus: "idle",
       initialPreselectionProcessed: false,
       polygonMode: false,
+      selectedGraffUniqueid: "",
       openToolbarMenu: null,
       cropRendererMode: "off",
       graffSearchText: "",
@@ -891,6 +933,8 @@ export default class AgriLocalization extends React.PureComponent<
       updates.tuman = this.normalizeApos(d.tuman || "");
     if (d.turi !== undefined) updates.turi = this.normalizeApos(d.turi || "");
     if (d.vh !== undefined) updates.vh = this.normalizeApos(d.vh || "");
+    if (d.uniqueid !== undefined)
+      (updates as any).selectedGraffUniqueid = String(d.uniqueid || "").trim();
     if (d.language !== undefined) updates.language = d.language;
     const ndviDateChanged = d.ndviDate !== undefined;
     if (ndviDateChanged) {
@@ -906,6 +950,7 @@ export default class AgriLocalization extends React.PureComponent<
     // Track whether a polygon chart is currently active in Graff
     if (d.polygonMode !== undefined) {
       (updates as any).polygonMode = Boolean(d.polygonMode);
+      if (!Boolean(d.polygonMode)) (updates as any).selectedGraffUniqueid = "";
     }
 
     // Update global debug year flag for console filtering.
@@ -968,18 +1013,10 @@ export default class AgriLocalization extends React.PureComponent<
 
     // ✅ When only turi (crop) changes: keep vh so bar + crop filters apply together
 
-    // Auto-enable crop renderer when user selects a crop (from AgriPie3),
-    // but only for the session until user manually toggles it.
-    if (turiChanged) {
-      const nextTuri = (updates.turi ?? "").toString().trim();
-      if (nextTuri && this.state.cropRendererMode === "off") {
-        (updates as any).cropRendererMode = "on";
-        this._cropRendererAutoEnabled = true;
-      } else if (!nextTuri && this._cropRendererAutoEnabled) {
-        (updates as any).cropRendererMode = "off";
-        this._cropRendererAutoEnabled = false;
-      }
-    }
+    // IMPORTANT:
+    // Crop selection (turi) coming from AgriPie should FILTER polygons only.
+    // Color renderer must stay strictly manual (toolbar button), so we do not
+    // auto-enable/disable cropRendererMode on turi changes.
 
     const hasChanges = Object.keys(updates).some(
       (key) => (updates as any)[key] !== (this.state as any)[key],
@@ -1790,9 +1827,44 @@ export default class AgriLocalization extends React.PureComponent<
 
   /* ---------------------- UI Handlers ---------------------- */
 
+  private resolveThemeState = (): boolean => {
+    try {
+      const savedTheme = localStorage.getItem("app_theme");
+      if (savedTheme === "dark" || savedTheme === "light") {
+        return savedTheme === "dark";
+      }
+    } catch {
+      // ignore storage read errors
+    }
+
+    const root = document.documentElement;
+    const body = document.body;
+    const attr = String(root.getAttribute("data-theme") || "")
+      .trim()
+      .toLowerCase();
+    if (attr === "dark") return true;
+    if (attr === "light") return false;
+
+    const rootClass = (root.className || "").toLowerCase();
+    const bodyClass = (body.className || "").toLowerCase();
+    if (
+      /\bdark-theme\b|\btheme-dark\b|\bdark\b/.test(rootClass) ||
+      /\bdark-theme\b|\btheme-dark\b|\bdark\b/.test(bodyClass)
+    ) {
+      return true;
+    }
+    if (
+      /\blight-theme\b|\btheme-light\b|\blight\b/.test(rootClass) ||
+      /\blight-theme\b|\btheme-light\b|\blight\b/.test(bodyClass)
+    ) {
+      return false;
+    }
+
+    return true;
+  };
+
   private initializeTheme = () => {
-    const savedTheme = localStorage.getItem("app_theme");
-    const isDarkTheme = savedTheme !== null ? savedTheme === "dark" : true;
+    const isDarkTheme = this.resolveThemeState();
     this.setState({ isDarkTheme });
     this.applyThemeToDom(isDarkTheme);
   };
@@ -1803,13 +1875,10 @@ export default class AgriLocalization extends React.PureComponent<
     const theme = isDarkTheme ? "dark" : "light";
 
     root.setAttribute("data-theme", theme);
-    if (isDarkTheme) {
-      root.classList.remove("light-theme");
-      body.classList.remove("light-theme");
-    } else {
-      root.classList.add("light-theme");
-      body.classList.add("light-theme");
-    }
+    root.classList.toggle("dark-theme", isDarkTheme);
+    body.classList.toggle("dark-theme", isDarkTheme);
+    root.classList.toggle("light-theme", !isDarkTheme);
+    body.classList.toggle("light-theme", !isDarkTheme);
 
     // Keep page background in sync with theme (same as LocalizationWidgetV20)
     applyAppBackgroundTheme(theme);
@@ -1965,6 +2034,26 @@ export default class AgriLocalization extends React.PureComponent<
     if (!lang || lang === this.state.language) return;
 
     this.setState({ language: lang, openToolbarMenu: null }, () => {
+      try {
+        localStorage.setItem("app_lang", lang);
+        localStorage.setItem("evapo_app_lang", lang);
+      } catch {
+        /* ignore storage errors */
+      }
+
+      document.dispatchEvent(
+        new CustomEvent("languageChanged", {
+          detail: {
+            lang,
+            language: lang,
+            code: lang,
+            source: "AgriLocalization",
+            timestamp: Date.now(),
+          },
+          bubbles: true,
+        }),
+      );
+
       this.broadcastFilterState();
     });
   };
@@ -2377,6 +2466,22 @@ export default class AgriLocalization extends React.PureComponent<
     return `(${parts.join(" OR ")})`;
   }
 
+  private buildUniqueIdClause(raw: string, layer?: __esri.FeatureLayer): string {
+    const id = String(raw || "").trim();
+    if (!id) return "";
+    const field = layer
+      ? this.findLayerFieldName(layer, "uniqueid") || "uniqueid"
+      : "uniqueid";
+    const core = id.replace(/[{}]/g, "");
+    const variants = Array.from(new Set([id, core, `{${core}}`])).filter(
+      Boolean,
+    );
+    const clauses = variants.map(
+      (v) => `${field}='${this.escapeArcGIS(String(v))}'`,
+    );
+    return clauses.length > 1 ? `(${clauses.join(" OR ")})` : clauses[0] || "";
+  }
+
   /**
    * Build viloyat filter clause using stored viloyat → region mapping.
    * Supports: viloyat name (looks up region number from _viloyatToRegion) or raw region number.
@@ -2555,6 +2660,15 @@ export default class AgriLocalization extends React.PureComponent<
 
     // Crop (turi): include only when includeTuri true — bar chart does not filter by crop
     if (includeTuri && turi) clauses.push(this.eqAposSmart("turi", turi));
+
+    // Row selection in AgriGraff should leave only the selected polygon on map.
+    if (this.state.polygonMode && this.state.selectedGraffUniqueid) {
+      const uniqueClause = this.buildUniqueIdClause(
+        this.state.selectedGraffUniqueid,
+        layer,
+      );
+      if (uniqueClause) clauses.push(uniqueClause);
+    }
 
     const result = clauses.length ? clauses.join(" AND ") : "1=0";
     return result;
@@ -3333,7 +3447,12 @@ export default class AgriLocalization extends React.PureComponent<
     const logoutLabel =
       language === "ru" ? "Выйти" : language === "uz_lat" ? "Chiqish" : "Чиқиш";
 
-    const graffSearchPlaceholder = "Search";
+    const graffSearchPlaceholder =
+      language === "ru"
+        ? "Поиск"
+        : language === "uz_lat"
+          ? "Qidiruv"
+          : "Қидирув";
 
     return (
       <div

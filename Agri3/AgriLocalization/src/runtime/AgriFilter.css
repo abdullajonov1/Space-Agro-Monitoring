@@ -228,6 +228,7 @@ body.evapo-app-bg-light {
   min-width: 220px;
   margin: 0 auto;
   position: relative;
+  transform: translateX(14px);
 }
 
 .agri-v20-root .agri-v20-graff-search-icon {
@@ -253,7 +254,7 @@ body.evapo-app-bg-light {
 .agri-v20-root .agri-v20-graff-search-input {
   width: 100%;
   min-width: 0;
-  padding: 11px 14px 11px 38px;
+  padding: 9px 14px 9px 38px;
   border-radius: 20px;
   border: 1px solid rgba(123, 220, 255, 0.34);
   background: linear-gradient(
@@ -644,6 +645,7 @@ body.light-theme .agri-v20-language-option.is-active {
     max-width: none;
     min-width: 0;
     margin: 0;
+    transform: none;
   }
 
   .agri-v20-root .agri-v20-toolbar-group {

@@ -136,6 +136,9 @@ interface VegetationStatsWidgetState {
 
   isDarkTheme: boolean;
   widgetSize: "xs" | "sm" | "md" | "lg";
+
+  /** App UI language (Russian by default — not Uzbek Cyrillic) */
+  language: "uz_cyr" | "uz_lat" | "ru";
 }
 
 export default class VegetationStatsWidget extends React.PureComponent<
@@ -157,8 +160,124 @@ export default class VegetationStatsWidget extends React.PureComponent<
   private _containerRef = React.createRef<HTMLDivElement>();
   private _resizeObserver: ResizeObserver | null = null;
 
+  private normalizeLanguage = (raw?: string | null): VegetationStatsWidgetState["language"] => {
+    const v = String(raw ?? "")
+      .trim()
+      .toLowerCase();
+
+    if (v === "ru" || v === "rus" || v === "russian") return "ru";
+    if (
+      v === "uz_cyr" ||
+      v === "uz-cyr" ||
+      v === "uz_cyrl" ||
+      v === "uz-cyrl" ||
+      v === "uz_cyrillic" ||
+      v === "uz-cyrillic"
+    ) {
+      return "uz_cyr";
+    }
+    if (
+      v === "uz_lat" ||
+      v === "uz-lat" ||
+      v === "uz_latin" ||
+      v === "uz-latin" ||
+      v === "uz"
+    ) {
+      return "uz_lat";
+    }
+
+    return "ru";
+  };
+
+  private resolveInitialLanguage = (): VegetationStatsWidgetState["language"] => {
+    try {
+      const fromUrl = new URLSearchParams(window.location.search).get("lang");
+      const fromStorage =
+        localStorage.getItem("app_lang") ||
+        localStorage.getItem("evapo_app_lang") ||
+        localStorage.getItem("agro_lang");
+      return this.normalizeLanguage(fromUrl || fromStorage);
+    } catch {
+      return "ru";
+    }
+  };
+
+  private labelNoValue = (): string => {
+    const L = this.state.language;
+    if (L === "ru") return "Нет значения";
+    if (L === "uz_lat") return "Qiymat yo‘q";
+    return "Қиймат йўқ";
+  };
+
+  private translateKnownError = (msg: string): string => {
+    const L = this.state.language;
+    const pick = (ru: string, uzLat: string, uzCyr: string) =>
+      L === "ru" ? ru : L === "uz_lat" ? uzLat : uzCyr;
+
+    const table: Record<string, [string, string, string]> = {
+      "Map view has no map": [
+        "У карты нет вида карты",
+        "Xarita ko‘rinishi yo‘q",
+        "Харита кўриниши йўқ",
+      ],
+      "No suitable feature layers found in the map.": [
+        "На карте нет подходящих векторных слоёв",
+        "Xaritada mos feature layer topilmadi",
+        "Харитада мос feature layer топилмади",
+      ],
+      "No feature layer available": [
+        "Нет доступного векторного слоя",
+        "Feature layer mavjud emas",
+        "Feature layer мавжуд эмас",
+      ],
+      "Select attribute field for this aggregation": [
+        "Выберите поле атрибутов для агрегации",
+        "Agregatsiya uchun attribut maydonini tanlang",
+        "Агрегация учун атрибут майдонини танланг",
+      ],
+      "Failed to fetch data from API": [
+        "Не удалось получить данные по API",
+        "API dan ma’lumot olinmadi",
+        "API дан маълумот олинмади",
+      ],
+      "Query failed": [
+        "Ошибка запроса",
+        "So‘rov xatosi",
+        "Сўров хатоси",
+      ],
+    };
+
+    const row = table[msg];
+    if (row) return pick(row[0], row[1], row[2]);
+    return msg;
+  };
+
+  private handleLanguageChange = (event: Event) => {
+    if (!this._isMounted || this._isResetting) return;
+    const d: any = (event as CustomEvent)?.detail || {};
+    const raw = d.lang ?? d.language ?? d.code;
+    const next = this.normalizeLanguage(raw);
+    if (next === this.state.language) return;
+    this.setState({ language: next });
+  };
+
   constructor(props: AllWidgetProps<any>) {
     super(props);
+
+    const initialLanguage = this.resolveInitialLanguage();
+
+    let initialIsDarkTheme = true;
+    try {
+      const saved = window.localStorage?.getItem("app_theme");
+      const dom = document.documentElement.getAttribute("data-theme");
+      if (saved !== null && saved !== undefined) {
+        initialIsDarkTheme = saved === "dark";
+      } else if (dom === "light" || dom === "dark") {
+        initialIsDarkTheme = dom === "dark";
+      }
+    } catch {
+      initialIsDarkTheme = true;
+    }
 
     this.state = {
       vegetationArea: null,
@@ -190,10 +309,9 @@ export default class VegetationStatsWidget extends React.PureComponent<
       lastFilterEventTimestamp: 0,
       isHandlingExternalEvent: false,
 
-      isDarkTheme:
-        window.localStorage?.getItem("app_theme") === "dark" ||
-        document.documentElement.getAttribute("data-theme") === "dark",
+      isDarkTheme: initialIsDarkTheme,
       widgetSize: "lg",
+      language: initialLanguage,
     };
 
     this.throttledFetchData = throttle(this.fetchData, 300, {
@@ -426,6 +544,10 @@ export default class VegetationStatsWidget extends React.PureComponent<
       "themeToggled",
       this.handleThemeChange as EventListener,
     );
+    document.addEventListener(
+      "languageChanged",
+      this.handleLanguageChange as EventListener,
+    );
 
     // responsive sizing (deferred to ensure DOM is ready)
     setTimeout(() => {
@@ -470,6 +592,15 @@ export default class VegetationStatsWidget extends React.PureComponent<
     const filters = d.filters || {};
     const scope = d.scope || {};
 
+    const hasField = (k: string) =>
+      Object.prototype.hasOwnProperty.call(filters, k);
+    const nextLanguage = hasField("language")
+      ? this.normalizeLanguage(
+          (filters.language as string | null | undefined) ??
+            this.state.language,
+        )
+      : this.state.language;
+
     // ✅ IMPORTANT: if AgriFilter locked viloyat, we must use it
     const effectiveViloyat = this.normalizeApos(
       scope.lockedViloyat || filters.viloyat || "",
@@ -507,7 +638,7 @@ export default class VegetationStatsWidget extends React.PureComponent<
       nextNdviStatusField = `${prefix}${suffix}`;
     }
 
-    const changed =
+    const filterChanged =
       nextYil !== this.state.selectedYil ||
       nextVil !== this.state.selectedViloyat ||
       nextTum !== this.state.selectedTuman ||
@@ -518,7 +649,14 @@ export default class VegetationStatsWidget extends React.PureComponent<
       nextNdviDate !== this.state.selectedNdviDate ||
       nextNdviStatusField !== this.state.ndviStatusField;
 
-    if (!changed) return;
+    const languageChanged = nextLanguage !== this.state.language;
+
+    if (!filterChanged && !languageChanged) return;
+
+    if (!filterChanged && languageChanged) {
+      this.setState({ language: nextLanguage });
+      return;
+    }
 
     console.log(
       `[AgriIndicator3] Filter sync yil=${nextYil || ""} viloyat=${nextVil || ""} tuman=${nextTum || ""} turi=${nextTuri || ""} vh=${nextVh || ""}`,
@@ -526,6 +664,7 @@ export default class VegetationStatsWidget extends React.PureComponent<
 
     this.setState(
       {
+        language: nextLanguage,
         selectedYil: nextYil,
         selectedViloyat: nextVil,
         selectedTuman: nextTum,
@@ -574,6 +713,10 @@ export default class VegetationStatsWidget extends React.PureComponent<
     BUS.removeEventListener(
       "themeToggled",
       this.handleThemeChange as EventListener,
+    );
+    document.removeEventListener(
+      "languageChanged",
+      this.handleLanguageChange as EventListener,
     );
 
     if (this._resizeObserver) {
@@ -1542,7 +1685,7 @@ export default class VegetationStatsWidget extends React.PureComponent<
         })
         .map((r) => ({
           key: r.key,
-          label: r.key == null ? "<No value>" : String(r.key),
+          label: r.key == null ? this.labelNoValue() : String(r.key),
           value: r.value,
         }));
     }
@@ -1646,7 +1789,7 @@ export default class VegetationStatsWidget extends React.PureComponent<
       })
       .map((r) => ({
         key: r.key,
-        label: r.key == null ? "<No value>" : String(r.key),
+        label: r.key == null ? this.labelNoValue() : String(r.key),
         value: dp > 0 ? parseFloat(r.value.toFixed(dp)) : Math.round(r.value),
       }));
 
@@ -2087,7 +2230,13 @@ export default class VegetationStatsWidget extends React.PureComponent<
   private initializeTheme = (): void => {
     const saved = window.localStorage?.getItem("app_theme");
     const dom = document.documentElement.getAttribute("data-theme");
-    this.setState({ isDarkTheme: saved === "dark" || dom === "dark" });
+    let isDarkTheme = true;
+    if (saved !== null && saved !== undefined) {
+      isDarkTheme = saved === "dark";
+    } else if (dom === "light" || dom === "dark") {
+      isDarkTheme = dom === "dark";
+    }
+    this.setState({ isDarkTheme });
   };
 
   handleThemeChange = (event: any): void => {
@@ -2188,13 +2337,29 @@ export default class VegetationStatsWidget extends React.PureComponent<
       selectedTuman,
       selectedYerToifas,
       groupResults,
+      language,
     } = this.state;
 
     const { config, useDataSources, useMapWidgetIds } = this.props;
     const useApiDataSource = !!config?.useApiDataSource;
 
-    const label = config?.label || "Ekin maydonlari";
-    const unitLabel = config?.unitLabel ?? "га";
+    const defaultStatLabel =
+      language === "ru"
+        ? "Площадь посевов"
+        : language === "uz_lat"
+          ? "Ekin maydonlari"
+          : "Экин майдонлари";
+
+    const label =
+      config?.label && String(config.label).trim()
+        ? config.label
+        : defaultStatLabel;
+
+    const defaultUnit = language === "uz_lat" ? "ga" : "га";
+    const unitLabel =
+      config?.unitLabel != null && String(config.unitLabel).trim() !== ""
+        ? config.unitLabel
+        : defaultUnit;
 
     const groupByField = (config?.groupByField || "").trim();
     const isGrouped = !!groupByField;
@@ -2211,7 +2376,7 @@ export default class VegetationStatsWidget extends React.PureComponent<
     const resolveCategoryLabel = (
       v: string | number | null | undefined,
     ): string => {
-      if (v == null) return "<No value>";
+      if (v == null) return this.labelNoValue();
       if (
         (config?.categoryMode || "AUTO") === "ENUM" &&
         Array.isArray(config?.enumCategories)
@@ -2228,7 +2393,11 @@ export default class VegetationStatsWidget extends React.PureComponent<
     const dVal = config?.displayGroupValue as any;
     const bucketCaption = isGrouped
       ? dVal === undefined
-        ? `Total across ${groupByField}`
+        ? language === "ru"
+          ? `Итого по полю ${groupByField}`
+          : language === "uz_lat"
+            ? `Jami (${groupByField})`
+            : `Жами (${groupByField})`
         : `${groupByField} = ${resolveCategoryLabel(dVal)}`
       : null;
 
@@ -2279,13 +2448,17 @@ export default class VegetationStatsWidget extends React.PureComponent<
         ) : error ? (
           <div className="error-container">
             <div className="error-icon">⚠️</div>
-            <p>{error}</p>
+            <p>{this.translateKnownError(String(error || ""))}</p>
             {!useApiDataSource && connectionStatus === "failed" && (
               <button
                 className="retry-button"
                 onClick={this.retryMapConnection}
               >
-                Retry Connection
+                {language === "ru"
+                  ? "Повторить подключение"
+                  : language === "uz_lat"
+                    ? "Qayta ulanish"
+                    : "Қайта уланиш"}
               </button>
             )}
           </div>
