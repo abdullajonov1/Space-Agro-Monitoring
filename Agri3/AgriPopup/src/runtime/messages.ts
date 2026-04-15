@@ -1,5 +1,18 @@
 export type LangCode = "uz_lat" | "uz_cyrl" | "ru" | "en";
 
+const AGRI3_LANG_PREF_KEY_V2 = "agri3_lang_initialized_ru_v2";
+const ensureAgri3RuLanguageDefault = (): void => {
+  try {
+    if (localStorage.getItem(AGRI3_LANG_PREF_KEY_V2) === "1") return;
+    localStorage.setItem("app_lang", "ru");
+    localStorage.setItem("evapo_app_lang", "ru");
+    localStorage.setItem("agro_lang", "ru");
+    localStorage.setItem(AGRI3_LANG_PREF_KEY_V2, "1");
+  } catch {
+    // ignore storage errors
+  }
+};
+
 type Dict = Record<string, string>;
 type Bundle = Record<LangCode, Dict>;
 
@@ -170,13 +183,15 @@ export function normalizeLang(input: any): LangCode {
     return "uz_lat";
   }
 
-  return "uz_lat";
+  return "ru";
 }
 
 export function getInitialLang(): LangCode {
+  ensureAgri3RuLanguageDefault();
   return normalizeLang(
     localStorage.getItem("evapo_app_lang") ||
       localStorage.getItem("app_lang") ||
+      localStorage.getItem("agro_lang") ||
       "ru",
   );
 }

@@ -24,6 +24,14 @@ import {
 
 import "./AgriPolygon.css";
 
+const console = {
+  log: (..._args: any[]) => {},
+  warn: (..._args: any[]) => {},
+  error: (..._args: any[]) => {},
+  info: (..._args: any[]) => {},
+  debug: (..._args: any[]) => {},
+};
+
 type Config = {
   fieldsToShow?: string[];
   titleField?: string;

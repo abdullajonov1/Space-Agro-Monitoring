@@ -26,6 +26,27 @@ import "./AgriRegion.css";
 
 // --- Uzbek/Russian transliteration helpers (display-only) ---
 type AgriDisplayLanguage = "uz_cyr" | "uz_lat" | "ru";
+
+const AGRI3_LANG_PREF_KEY_V2 = "agri3_lang_initialized_ru_v2";
+const ensureAgri3RuLanguageDefault = (): void => {
+  try {
+    if (localStorage.getItem(AGRI3_LANG_PREF_KEY_V2) === "1") return;
+    localStorage.setItem("app_lang", "ru");
+    localStorage.setItem("evapo_app_lang", "ru");
+    localStorage.setItem("agro_lang", "ru");
+    localStorage.setItem(AGRI3_LANG_PREF_KEY_V2, "1");
+  } catch {
+    // ignore storage errors
+  }
+};
+
+const console = {
+  log: (..._args: any[]) => {},
+  warn: (..._args: any[]) => {},
+  error: (..._args: any[]) => {},
+  info: (..._args: any[]) => {},
+  debug: (..._args: any[]) => {},
+};
 type WidgetSize = "xs" | "sm" | "md" | "lg";
 
 const UZ_CYRILLIC_TO_LATIN: Record<string, string> = {
@@ -357,6 +378,7 @@ export default class AgriRegion extends React.PureComponent<
 
   private resolveInitialLanguage = (): "uz_cyr" | "uz_lat" | "ru" => {
     try {
+      ensureAgri3RuLanguageDefault();
       const fromUrl =
         typeof window !== "undefined"
           ? new URLSearchParams(window.location.search).get("lang")
@@ -574,12 +596,6 @@ export default class AgriRegion extends React.PureComponent<
 
     if (!meaningfulChanged) return;
 
-    console.log("[AgriRegion] Received master filter update (meaningful):", {
-      ...next,
-      lockedViloyat,
-      isLocked,
-    });
-
     // Special case: we just pressed "Back" from a selected tuman and want to stay on viloyat list,
     // but master filter will still carry viloyat=<name>. Suppress the auto drill-down once.
     const pendingHighlight = (this._pendingBackToViloyatHighlight || "").trim();
@@ -668,8 +684,6 @@ export default class AgriRegion extends React.PureComponent<
       source: "AgriRegion",
       timestamp: Date.now(),
     };
-
-    console.log("[AgriRegion] Notifying AgriFilter:", detail);
 
     document.dispatchEvent(
       new CustomEvent("widgetSelectionChanged", {
@@ -1130,10 +1144,6 @@ export default class AgriRegion extends React.PureComponent<
     });
 
     if (key === this._lastRegionalFetchKey) {
-      console.log(
-        "[AgriRegion] fetchRegionalData skipped (duplicate key):",
-        key,
-      );
       return;
     }
 

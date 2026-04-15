@@ -156,9 +156,31 @@ interface FilterState {
   language: "uz_cyr" | "uz_lat" | "ru";
 }
 
+const AGRI3_LANG_PREF_KEY_V2 = "agri3_lang_initialized_ru_v2";
+const ensureAgri3RuLanguageDefault = (): void => {
+  try {
+    if (localStorage.getItem(AGRI3_LANG_PREF_KEY_V2) === "1") return;
+    localStorage.setItem("app_lang", "ru");
+    localStorage.setItem("evapo_app_lang", "ru");
+    localStorage.setItem("agro_lang", "ru");
+    localStorage.setItem(AGRI3_LANG_PREF_KEY_V2, "1");
+  } catch {
+    // ignore storage errors
+  }
+};
+
+const console = {
+  log: (..._args: any[]) => {},
+  warn: (..._args: any[]) => {},
+  error: (..._args: any[]) => {},
+  info: (..._args: any[]) => {},
+  debug: (..._args: any[]) => {},
+};
+
 /** Align with AgriBar/AgriRegion/AgriPopup localStorage; default first-run language = Russian */
 function resolveStoredAgriLanguage(): FilterState["language"] {
   try {
+    ensureAgri3RuLanguageDefault();
     const raw =
       localStorage.getItem("evapo_app_lang") ||
       localStorage.getItem("app_lang") ||

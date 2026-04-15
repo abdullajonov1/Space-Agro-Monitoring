@@ -83,6 +83,27 @@ interface AgriPieState {
   isDarkTheme: boolean;
 }
 
+const AGRI3_LANG_PREF_KEY_V2 = "agri3_lang_initialized_ru_v2";
+const ensureAgri3RuLanguageDefault = (): void => {
+  try {
+    if (localStorage.getItem(AGRI3_LANG_PREF_KEY_V2) === "1") return;
+    localStorage.setItem("app_lang", "ru");
+    localStorage.setItem("evapo_app_lang", "ru");
+    localStorage.setItem("agro_lang", "ru");
+    localStorage.setItem(AGRI3_LANG_PREF_KEY_V2, "1");
+  } catch {
+    // ignore storage errors
+  }
+};
+
+const console = {
+  log: (..._args: any[]) => {},
+  warn: (..._args: any[]) => {},
+  error: (..._args: any[]) => {},
+  info: (..._args: any[]) => {},
+  debug: (..._args: any[]) => {},
+};
+
 /* ---------- Component ---------- */
 
 export default class AgriPie extends React.PureComponent<
@@ -172,6 +193,7 @@ export default class AgriPie extends React.PureComponent<
 
   private resolveInitialLanguage = (): AgriPieState["language"] => {
     try {
+      ensureAgri3RuLanguageDefault();
       const fromUrl =
         typeof window !== "undefined"
           ? new URLSearchParams(window.location.search).get("lang")
